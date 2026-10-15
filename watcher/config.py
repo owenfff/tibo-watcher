@@ -59,6 +59,9 @@ class Config:
     mail_from: str = ""
     mail_to: str = ""
 
+    pushplus_token: str = ""
+    pushplus_qq_option: str = ""
+
     verbose: bool = False
 
     def active_channels(self) -> list[str]:
@@ -69,6 +72,8 @@ class Config:
             channels.append("telegram")
         if self.smtp_host and self.mail_to:
             channels.append("email")
+        if self.pushplus_token and self.pushplus_qq_option:
+            channels.append("qq")
         return channels
 
 
@@ -93,6 +98,8 @@ def load_config(**overrides) -> Config:
         smtp_password=env("SMTP_PASSWORD", "").strip(),
         mail_from=env("MAIL_FROM", env("SMTP_USER", "")).strip(),
         mail_to=env("MAIL_TO", "").strip(),
+        pushplus_token=env("PUSHPLUS_TOKEN", "").strip(),
+        pushplus_qq_option=env("PUSHPLUS_QQ_OPTION", "").strip(),
         verbose=_flag("VERBOSE", "0"),
     )
     for key, value in overrides.items():

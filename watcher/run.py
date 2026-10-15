@@ -1,10 +1,11 @@
 from __future__ import annotations
 
 import time
-from datetime import datetime, timezone
+from datetime import datetime
 
 from . import notify, sources
 from .config import Config
+from .events import BEIJING, classify_reset, format_qq
 from .detect import score_text, should_alert
 from .state import StateStore
 
@@ -12,21 +13,23 @@ MAX_ALERTS_PER_CYCLE = 5
 
 
 def _stamp() -> str:
-    return datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M:%SZ")
+    return datetime.now(BEIJING).strftime("%Y-%m-%d %H:%M 北京时间")
 
 
 def log(message: str) -> None:
     print(f"[{_stamp()}] {message}", flush=True)
 
 
-def check_once(cfg: Config, *, prime: bool = False, dry_run: bool = False) -> int:
-    posts = sources.collect(cfg)
+def check_once(cfg: Config, *, prime: bool = False, dry_run: bool = False, sample_posts: list | None = None) -> int:
+    if sample_posts is not None and not dry_run:
+        raise ValueError("sample posts require dry-run")
+    posts = sample_posts if sample_posts is not None else sources.collect(cfg)
     if not posts:
         log("no posts fetched from any source; keeping previous state")
         return 0
 
     store = StateStore(cfg.state_file)
-    baseline = store.fresh_file or prime
+    baseline = (store.fresh_file or prime) and sample_posts is None
     findings = []
 
     for post in posts:
@@ -38,6 +41,8 @@ def check_once(cfg: Config, *, prime: bool = False, dry_run: bool = False) -> in
                 f"{post.title[:70]}")
         store.mark_seen(post.key)
         if not cfg.include_replies and post.is_reply:
+            continue
+        if post.is_repost or not classify_reset(post.body):
             continue
         if cfg.alert_all or should_alert(score, cfg.score_threshold):
             findings.append((post, score))
@@ -53,9 +58,14 @@ def check_once(cfg: Config, *, prime: bool = False, dry_run: bool = False) -> in
             "pushes this cycle")
     for post, score in findings[:MAX_ALERTS_PER_CYCLE]:
         if dry_run:
-            log(f"DRY-RUN would push: score {score.total} ({score.hits}) "
-                f"{post.url}")
+            if post.source == "x":
+                title, body = format_qq(post)
+                print(f"DRY-RUN QQ 预览（不发送）\n{title}\n{body}")
+            else:
+                log(f"DRY-RUN changelog match: score {score.total}")
             continue
+        # Persist locally before network delivery; never retry a seen post.
+        store.save()
         results = notify.send_alert(cfg, post, score.total, score.hits)
         for ok, note in results:
             if not ok:

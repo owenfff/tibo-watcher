@@ -13,6 +13,7 @@ LIMIT_NOUNS = (
 )
 
 STRONG = [
+    ("banked-reset", r"\bbanked\s+resets?\b|重置券"),
     ("limits-reset",
      rf"{LIMIT_NOUNS}(.{{0,60}}?){RESET_VERBS}|{RESET_VERBS}(.{{0,60}}?){LIMIT_NOUNS}"),
     ("credits-for-users",

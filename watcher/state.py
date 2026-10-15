@@ -6,9 +6,6 @@ import tempfile
 from datetime import datetime, timezone
 from pathlib import Path
 
-MAX_ENTRIES = 1500
-
-
 class StateStore:
     def __init__(self, path: Path):
         self.path = path
@@ -32,19 +29,11 @@ class StateStore:
     def mark_seen(self, key: str) -> None:
         self._data["seen"][key] = self._now()
 
-    def prune(self, limit: int = MAX_ENTRIES) -> None:
-        seen = self._data["seen"]
-        if len(seen) <= limit:
-            return
-        newest_first = sorted(seen.items(), key=lambda kv: kv[1], reverse=True)
-        self._data["seen"] = dict(newest_first[:limit])
-
     def tracked_count(self) -> int:
         return len(self._data["seen"])
 
     def save(self) -> None:
         self._data["last_run"] = self._now()
-        self.prune()
         fd, tmp_name = tempfile.mkstemp(
             dir=str(self.path.parent), prefix=".state-", suffix=".tmp")
         try:

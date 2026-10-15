@@ -1,165 +1,140 @@
-<div align="center">
-
 # 🔄 tibo-watcher
 
-**Your phone buzzes the moment Codex usage limits reset.**
+监控 @thsottiaux 的 Codex / ChatGPT Work 额度重置消息，支持 ntfy、Telegram、邮件及 PushPlus QQ 机器人。Python 3.10+，仅用标准库，无额外依赖。
 
-[![Python](https://img.shields.io/badge/python-3.10%2B-blue)](https://www.python.org/)
-[![Dependencies](https://img.shields.io/badge/dependencies-zero-success)]()
-[![Schedule](https://img.shields.io/badge/schedule-every%2010%20min-2ea44f)]()
-[![License: MIT](https://img.shields.io/badge/license-MIT-yellow)](LICENSE)
+沿用原项目的 Dayclaw 公开 X 时间线和官方 Codex changelog。无需 X Bearer Token，不调用付费 X API。公开镜像可能延迟或不可用；单个来源故障不阻塞另一个来源。GitHub Actions 保持每 10 分钟运行（GitHub 调度可能延迟）。
 
-Watches [**@thsottiaux**](https://x.com/thsottiaux) — *Tibo*, the Codex lead at OpenAI —
-plus the official [Codex changelog](https://learn.chatgpt.com/docs/changelog).
-When either hints at **limits being reset, refreshed, credited, or changed**,
-you get a push notification within minutes.
+## 监控规则
 
-*No API keys. No accounts. No servers to pay for.*
+- 保留加权关键词打分：强信号 3 分、中信号 2 分、产品词 1 分；新增 banked reset 强信号。
+- 先要求存在重置、补发额度或重置券事件，再应用原有评分门槛。普通额度讨论、产品发布、转帖或引用帖不推送。转帖识别使用镜像提供的元数据、作者和 RT/QT 前缀；镜像若未提供标识，无法完全识别。
+- 状态为「预告 / 重置券 / 已完成 / 疑似重置」。未来时优先按预告处理；有否定、条件、推测等歧义时不说已到账。banked reset 表示可使用的重置券，不表示额度自动到账。
+- `ALERT_ALL=1` / `--alert-all` 只跳过分数门槛，仍过滤非重置事件及转帖。
+- 首次运行及 `--prime` 只建立基线，不发送历史消息。每轮最多推送 5 条，沿用原项目行为。
+- 按稳定帖子 ID 去重，记录永久保留，不再裁剪到 1500 条。同一帖子后续修改不会再发。请保留 `watcher_state.json` 和 Actions 的持久化步骤。
+- 发送前保存去重记录，不自动重试失败消息，以避免重复。失败、超出每轮上限的帖子也视为已处理；极端情况下进程中断或状态未能推回 GitHub，不能保证跨运行的绝对一次性投递。不要删除或回滚状态文件。
 
-</div>
+## QQ 机器人（PushPlus）
 
----
+QQ 仅通过 PushPlus 官方机器人渠道发送，不涉及个人 QQ 登录、协议机器人、NapCat 或 Lagrange。QQ 只推送 @thsottiaux 时间线的重置事件，changelog 继续供原来的通知渠道使用，不会冒充其发帖。
 
-## Why this exists
+### 把机器人加入你的群
 
-Codex weekly limits reset without warning. Tibo often tweets about it —
-*"we'll credit every Codex account"*, *"limits now refresh daily"* — but unless
-you're staring at X all day, you find out hours later. This tool does the
-staring for you, so you can jump back into heavy usage (or burn leftover
-quota) the moment the tank refills.
+1. 登录 PushPlus，在「个人中心 → 渠道配置 → QQ机器人」扫描页面二维码，添加官方机器人为好友并绑定；已加好友而未绑定时，复制绑定码，私聊发送给机器人。
+2. 用群主 QQ，在机器人资料页通过「添加到群」等入群入口，选择你管理的目标群，完成入群。
+3. 在目标群的机器人管理/机器人资料设置中，为该机器人打开 **「允许主动发言」**（部分 QQ 版本称允许主动消息/主动推送）。以你客户端实际显示为准；PushPlus 建群配置前必须开启此权限。
+4. 回到 PushPlus 的 QQ机器人渠道配置，新增「发到QQ群」配置，选择刚加入的群及机器人，保存并复制该条配置的 **配置编码**。这不是 QQ 群号，也不是 PushPlus 的 topic 群组码。
+5. 按下表配置两个 secret。机器人绑定成功不代表已完成群配置；两项齐全才会启用 QQ。
 
-## Deploy it in 3 steps
+流程依据 [PushPlus 官方 QQ机器人渠道说明](https://www.pushplus.plus/doc/channel/qq.html)。官方说明：实名非会员通常只展示标题摘要，因此标题独立表达结论；服务额度与客户端菜单以平台当前说明为准。
 
-**Works with a free GitHub account. One secret, no cloud config.**
+### GitHub Actions secrets
 
-1. **Fork or push this repo to GitHub.**
-2. **Add one repository secret** — Settings → Secrets and variables → Actions →
-   `New repository secret`:
-   - Name: `NTFY_TOPIC` · Value: any unguessable string, e.g. `tibo-codex-k7m2qx`
-3. **Subscribe on your phone** — install the free
-   [ntfy](https://ntfy.sh/docs/subscribe/phone/) app (Android/iOS) and add that
-   same topic name.
+在本仓库 Settings → Secrets and variables → Actions → New repository secret 中填写：
 
-Done. The included GitHub Action now checks every 10 minutes, even with your
-computer off. Tap *Actions → watch → Run workflow* to fire the first check
-right now.
+| Secret | 填什么 |
+|---|---|
+| `PUSHPLUS_TOKEN` | PushPlus 个人中心的发送 token |
+| `PUSHPLUS_QQ_OPTION` | 上述「发到QQ群」渠道配置的配置编码 |
 
-<details>
-<summary><b>Prefer running it on your own machine?</b></summary>
+Actions 已将这两项传给程序，cron 保持 `*/10 * * * *`。缺少任意一项就跳过 QQ，不影响 ntfy / Telegram / 邮件。不要把真实值写进源码、示例、日志或提交。
+
+本地运行：复制 `.env.example` 为 `.env`，填写对应两项。`.env` 已被 Git 忽略；环境变量优先于 `.env`。
+
+接口固定 POST `https://www.pushplus.plus/send`，JSON 仅含 `token`、`title`、`content`、`channel="qq"`、`option`、`template="txt"`。HTTP 成功且 JSON `code=200` 才记为 PushPlus 已受理；已受理不等于 QQ 最终送达。接口响应原文不写日志，避免泄密。
+
+### QQ 文案
+
+标题最多 40 字，不含网址或 Markdown；正文固定四行。QQ 标题和正文由固定中文文案及解析时间生成，绝不拼接原帖文本或任何长短链接。所有显示时间转为北京时间 UTC+8，精确到分钟。
+
+```text
+Codex已完成重置 北京时间10-13 13:06
+状态：已完成
+北京时间：10-13 13:06（原帖发布时间）
+说明：Codex已确认额度自动重置或补发，无需使用重置券。
+来源：@thsottiaux
+```
+
+时间表示 **原帖发布时间**，不是账户实际到账时间。不会把含糊的 “end of day” 擅自翻译为北京时间今晚；没有明确时区就不编造执行时刻。Dayclaw 未带偏移的 ISO 发布时间按 UTC 解析；缺失或仅有日期时标明未提供精确时间。
+
+### 用一条假帖子离线干跑，不发到群里
+
+仓库已附 `examples/reset-post.json`：
+
+```json
+{
+  "body": "We have reset all Codex usage limits.",
+  "created_at": "2026-10-13T05:06:00Z"
+}
+```
+
+在仓库目录执行：
 
 ```bash
-git clone https://github.com/YOUR_USERNAME/tibo-watcher
-cd tibo-watcher
-python main.py --loop
+python3 main.py --dry-run --sample-post examples/reset-post.json
+python3 main.py --dry-run --sample-post examples/reset-announcement.json
+python3 main.py --dry-run --sample-post examples/banked-reset.json
+python3 main.py --dry-run --sample-post examples/possible-reset.json
 ```
 
-Python 3.10+ — nothing to `pip install`. Windows Task Scheduler alternative:
+命令不抓取时间线、不发送任何通知、不写去重状态，即便已经配置真实 secrets 也不会发送。首次使用没有状态文件也能预览，不受基线抑制。输出标题应为 `Codex已完成重置 北京时间10-13 13:06`。
 
-```powershell
-schtasks /create /tn "tibo-watcher" /tr "python C:\path\to\tibo-watcher\main.py" /sc minute /mo 10
-```
+可修改假帖 body 为 `We will give a banked reset today.` 测预告，或 `Your Codex banked reset is now available.` 测重置券。`--sample-post` 必须搭配 `--dry-run`；干跑禁止与 `--test-notify`、`--loop`、`--prime` 混用。
 
-</details>
+## 原有通知渠道
 
-## What an alert looks like
+渠道可同时启用，QQ 未配置或请求失败不会阻止其他渠道。
 
-```
-🔄 Codex limits watch: It's me again. I come bearing great news...
+| 环境变量 | 用途 |
+|---|---|
+| `NTFY_TOPIC` / `NTFY_SERVER` | ntfy 订阅主题及服务端，默认 `https://ntfy.sh` |
+| `TELEGRAM_BOT_TOKEN` / `TELEGRAM_CHAT_ID` | Telegram 机器人和会话 |
+| `SMTP_HOST` / `SMTP_PORT` / `SMTP_USER` / `SMTP_PASSWORD` | 邮件 SMTP 配置 |
+| `MAIL_FROM` / `MAIL_TO` | 邮件收发地址 |
 
-Possible Codex limits signal (score 6: usage-limits, credits, codex, chatgpt)
-Source: X @thsottiaux | 2026-08-20
-https://x.com/thsottiaux/status/2090766694897619318
----
-It's me again. I come bearing great news. First of all, we have hit 20M
-active users for Codex... during the day we will credit every Codex and...
-```
+ntfy 手机客户端订阅同一个随机主题即可。原有渠道继续保留英文评分摘要、原文和来源链接；无网址的四行中文格式专用于 QQ。
 
-Tapping the notification opens the original post.
+## 其他配置和运行
 
-## How it works
-
-```mermaid
-flowchart LR
-    A["X · @thsottiaux<br/>(Dayclaw public mirror)"] --> D
-    B["Codex changelog<br/>(official docs page)"] --> D
-    D["Weighted keyword scorer"] -->|"strong phrase<br/>or score ≥ 3"| E["📱 ntfy push"]
-    D --> E2["✈️ Telegram"]
-    D --> E3["📧 Email"]
-    D --> F[("watcher_state.json<br/>dedupe")]
-```
-
-1. **Fetch** — two independent sources, each failure-isolated so one outage
-   never kills a run.
-2. **Score** — transparent weighted regex rules, no LLM calls:
-   | Tier | Points | Examples |
-   |---|---|---|
-   | Strong | 3 | *"limits … reset"*, *"credits for all users"*, *"we've granted…"* |
-   | Medium | 2 | "rate limits", "quota", "usage caps", "weekly cap", "credits" |
-   | Weak | 1 | "codex", "chatgpt", "openai" |
-
-   Explicit reset phrasing always alerts; milder limit talk must also mention
-   the Codex/ChatGPT/OpenAI world and clear the threshold. *"I was gifted a
-   reset button"* scores 0 — a reset needs a *limit* nearby.
-3. **Dedupe** — seen items persist to `watcher_state.json` (written atomically,
-   committed back by the Action). The first run baselines silently, so
-   history never spams you.
-4. **Push** — findings fan out to every configured channel, capped at 5 per
-   cycle.
-
-## Configuration
-
-Everything is optional — copy `.env.example` to `.env` and tune:
-
-| Variable | Default | What it does |
+| 环境变量 | 默认值 | 用途 |
 |---|---|---|
-| `NTFY_TOPIC` | — | phone push topic (the one deploy step that matters) |
-| `TIBO_HANDLE` | `thsottiaux` | who to watch on X |
-| `WATCH_INTERVAL_MIN` | `10` | minutes between checks in `--loop` mode |
-| `SCORE_THRESHOLD` | `3` | lower = noisier, higher = only slam dunks |
-| `ALERT_ALL` | `0` | `1` pushes every new post regardless of score |
-| `INCLUDE_REPLIES` | `1` | replies often carry the juiciest hints |
-| `WATCH_CHANGELOG` | `1` | `0` disables the changelog source |
-| `TELEGRAM_BOT_TOKEN` / `TELEGRAM_CHAT_ID` | — | optional Telegram delivery |
-| `SMTP_*` / `MAIL_TO` | — | optional email delivery |
-
-Channels stack — configure all three and every finding hits phone, Telegram,
-and inbox together.
-
-## Commands
+| `TIBO_HANDLE` | `thsottiaux` | X 监控对象；QQ 仅支持此账号 |
+| `INCLUDE_REPLIES` | `1` | 是否监控回复 |
+| `WATCH_CHANGELOG` | `1` | 是否读取官方 changelog |
+| `WATCH_INTERVAL_MIN` | `10` | 本地循环间隔分钟数 |
+| `SCORE_THRESHOLD` | `3` | 关键词评分门槛 |
+| `ALERT_ALL` | `0` | 是否绕过事件的评分门槛 |
+| `STATE_FILE` | `watcher_state.json` | 去重状态文件 |
+| `VERBOSE` | `0` | 是否输出原帖评分日志 |
 
 ```bash
-python main.py                  # one check cycle (scheduler-friendly)
-python main.py --loop           # forever, every 10 minutes
-python main.py --test-notify    # verify your phone setup
-python main.py --dry-run --verbose   # see every item + score, no side effects
-python main.py --prime          # re-baseline after tuning rules
+python3 main.py                         # 检查一轮
+python3 main.py --loop                  # 本地持续检查
+python3 main.py --dry-run --verbose     # 读取真实来源，但不推送、不保存状态
+python3 main.py --prime                 # 重新记录当前基线，不推送
+python3 main.py --test-notify           # 真实发送测试消息到所有已配置渠道（包括 QQ）
+python3 -m unittest discover -s tests -v # 离线回归测试
 ```
 
-## Project structure
+部署时直接在现有仓库应用修改，配置 secrets，在 Actions → watch → Run workflow 启动。保持工作流的 `contents: write` 权限，以便提交去重状态。
 
+## 项目结构
+
+```text
+main.py                     入口
+watcher/config.py           环境变量和 .env
+watcher/sources.py          原有公开时间线及 changelog
+watcher/detect.py           加权关键词打分
+watcher/events.py           重置状态判断、北京时间、QQ 中文文案
+watcher/notify.py           ntfy / Telegram / SMTP / PushPlus QQ
+watcher/state.py            永久去重记录，原子写入
+watcher/run.py              检查和循环
+watcher/cli.py              CLI 及离线假帖干跑
+examples/reset-post.json    无密钥的假帖
+.github/workflows/watch.yml 每 10 分钟运行及持久化状态
 ```
-main.py                     entry point
-watcher/
-├── cli.py                  argument parsing
-├── config.py               .env + environment handling
-├── fetch.py                HTTP with retries (stdlib urllib)
-├── sources.py              Dayclaw feed + changelog page parsers
-├── detect.py               weighted keyword rules
-├── state.py                dedupe store, atomic writes
-├── notify.py               ntfy / Telegram / SMTP delivery
-└── run.py                  check cycle + loop
-.github/workflows/watch.yml every-10-minutes cloud schedule
-```
 
-## Notes & limits
-
-- **Unofficial** fan tool — not affiliated with OpenAI. It reads public
-  wording and guesses; expect occasional false positives or missed hints.
-- X data comes from the free [Dayclaw](https://dayclaw.com) mirror because the
-  official X API starts at ~$100/month. If the mirror briefly rate-limits,
-  that cycle skips X, keeps watching the changelog, and retries next run.
-- GitHub may delay busy schedules by a few minutes; for exact 10-minute
-  timing run `--loop` locally.
+非官方工具，基于公开措辞作保守判断，仍可能漏报或误判。
 
 ## License
 

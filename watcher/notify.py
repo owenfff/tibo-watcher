@@ -4,10 +4,12 @@ import json
 import smtplib
 import ssl
 from email.message import EmailMessage
+from datetime import datetime
 
 from .config import Config
 from .fetch import http_post
 from .model import Post
+from .events import BEIJING, classify_reset, format_qq
 
 SHORT_PREVIEW = 350
 LONG_PREVIEW = 1200
@@ -85,17 +87,48 @@ def _send_email(cfg: Config, title: str, body: str) -> tuple[bool, str]:
         return False, f"email failed: {error}"
 
 
+def _send_qq(cfg: Config, title: str, body: str) -> tuple[bool, str]:
+    # Never retry an ambiguous response: duplicate group messages are worse
+    # than a missed alert. Never log response text (it may echo the token).
+    payload = json.dumps({
+        "token": cfg.pushplus_token, "title": title, "content": body,
+        "channel": "qq", "option": cfg.pushplus_qq_option, "template": "txt",
+    }, ensure_ascii=False).encode("utf-8")
+    try:
+        status, response = http_post(
+            "https://www.pushplus.plus/send", payload,
+            headers={"Content-Type": "application/json"})
+        result = json.loads(response)
+        ok = status == 200 and isinstance(result, dict) and result.get("code") == 200
+        return ok, "qq accepted by PushPlus" if ok else f"qq rejected [{status}]"
+    except (OSError, ValueError):
+        return False, "qq request failed (no automatic retry)"
+
+
+def _isolated(sender, *args) -> tuple[bool, str]:
+    try:
+        return sender(*args)
+    except Exception:
+        # Transport errors must not stop delivery to the remaining channels.
+        return False, "notification channel transport failed"
+
+
 def send_alert(cfg: Config, post: Post, score_total: int, score_hits: str) -> list[tuple[bool, str]]:
     title = format_title(post)
     short = format_alert(cfg, post, score_total, score_hits)
     long_form = format_alert(cfg, post, score_total, score_hits, long=True)
     logs = []
     if cfg.ntfy_topic:
-        logs.append(_send_ntfy(cfg, title, short, post.url))
+        logs.append(_isolated(_send_ntfy, cfg, title, short, post.url))
     if cfg.telegram_token and cfg.telegram_chat_id:
-        logs.append(_send_telegram(cfg, title, long_form, post.url))
+        logs.append(_isolated(_send_telegram, cfg, title, long_form, post.url))
     if cfg.smtp_host and cfg.mail_to:
-        logs.append(_send_email(cfg, title, long_form))
+        logs.append(_isolated(_send_email, cfg, title, long_form))
+    if (cfg.pushplus_token and cfg.pushplus_qq_option and post.source == "x"
+            and cfg.handle.lower() == "thsottiaux" and not post.is_repost
+            and classify_reset(post.body)):
+        qq_title, qq_body = format_qq(post)
+        logs.append(_send_qq(cfg, qq_title, qq_body))
     return logs
 
 
@@ -110,4 +143,9 @@ def send_test(cfg: Config) -> list[tuple[bool, str]]:
         logs.append(_send_telegram(cfg, title, body, "https://x.com/" + cfg.handle))
     if cfg.smtp_host and cfg.mail_to:
         logs.append(_send_email(cfg, title, body))
+    if cfg.pushplus_token and cfg.pushplus_qq_option:
+        when = datetime.now(BEIJING).strftime("%m-%d %H:%M")
+        logs.append(_send_qq(cfg, f"Codex监控测试 北京时间{when}",
+                             f"状态：测试（非真实重置通知）\n北京时间：{when}\n"
+                             "说明：手动渠道测试，不表示自动重置或发放重置券。\n来源：@thsottiaux"))
     return logs
