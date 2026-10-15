@@ -25,9 +25,14 @@ jobs:
         with:
           python-version: "3.12"
 
+      - name: Offline regression tests
+        run: python -m unittest discover -s tests -v
+
       - name: Run one check cycle
         run: python main.py
         env:
+          PUSHPLUS_TOKEN: ${{ secrets.PUSHPLUS_TOKEN }}
+          PUSHPLUS_QQ_OPTION: ${{ secrets.PUSHPLUS_QQ_OPTION }}
           NTFY_TOPIC: ${{ secrets.NTFY_TOPIC }}
           NTFY_SERVER: ${{ secrets.NTFY_SERVER }}
           TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
@@ -40,9 +45,11 @@ jobs:
           MAIL_TO: ${{ secrets.MAIL_TO }}
 
       - name: Persist dedupe state
+        if: always()
         run: |
           git config user.name  "tibo-watcher-bot"
           git config user.email "actions@users.noreply.github.com"
+          if [ ! -f watcher_state.json ]; then exit 0; fi
           git add -f watcher_state.json
           if git diff --cached --quiet; then
             echo "state unchanged, nothing to commit"
