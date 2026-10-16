@@ -9,6 +9,7 @@ from datetime import datetime
 from .config import Config
 from .fetch import http_post
 from .model import Post
+from .translate import add_translation
 from .daily import classify_daily
 from .plans import classify_plan
 from .events import BEIJING, classify_reset, format_qq
@@ -133,6 +134,8 @@ def send_alert(cfg: Config, post: Post, score_total: int, score_hits: str) -> li
             and (not post.is_quote or classify_daily(post.body))
             and (classify_reset(post.body) or classify_daily(post.body) or classify_plan(post.body))):
         qq_title, qq_body = format_qq(post)
+        if cfg.qq_auto_translate:
+            qq_body = add_translation(qq_body, post.body)
         logs.append(_send_qq(cfg, qq_title, qq_body))
     return logs
 

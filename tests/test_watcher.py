@@ -82,7 +82,7 @@ class Delivery(unittest.TestCase):
             self.assertIn("qq", cfg.active_channels())
 
     def test_payload_and_business_failure(self):
-        cfg = Config(pushplus_token="fake", pushplus_qq_option="group-code")
+        cfg = Config(qq_auto_translate=False, pushplus_token="fake", pushplus_qq_option="group-code")
         with patch("watcher.notify.http_post", return_value=(200, '{"code":200}')) as send:
             self.assertTrue(send_alert(cfg, post(), 5, "reset")[0][0])
             args, kwargs = send.call_args
@@ -98,11 +98,11 @@ class Delivery(unittest.TestCase):
                 self.assertFalse(result[0][0]); self.assertNotIn("fake", str(result))
 
     def test_absent_credentials_and_failure_isolation(self):
-        for cfg in [Config(), Config(pushplus_token="fake"), Config(pushplus_qq_option="code")]:
+        for cfg in [Config(qq_auto_translate=False, ), Config(qq_auto_translate=False, pushplus_token="fake"), Config(qq_auto_translate=False, pushplus_qq_option="code")]:
             with patch("watcher.notify.http_post") as send:
                 self.assertEqual(send_alert(cfg, post(), 5, "reset"), [])
                 send.assert_not_called()
-        cfg = Config(ntfy_topic="fake", pushplus_token="fake", pushplus_qq_option="code")
+        cfg = Config(qq_auto_translate=False, ntfy_topic="fake", pushplus_token="fake", pushplus_qq_option="code")
         with patch("watcher.notify._send_ntfy", side_effect=OSError()), patch(
                 "watcher.notify._send_qq", return_value=(True, "accepted")) as send:
             self.assertEqual(len(send_alert(cfg, post(), 5, "reset")), 2)
@@ -113,7 +113,7 @@ class Pipeline(unittest.TestCase):
     def test_dedupe_forever_and_baseline(self):
         with tempfile.TemporaryDirectory() as folder:
             path = Path(folder) / 'state.json'
-            cfg = Config(state_file=path)
+            cfg = Config(qq_auto_translate=False, state_file=path)
             with patch("watcher.run.sources.collect", return_value=[post()]), patch("watcher.run.notify.send_alert") as send:
                 check_once(cfg)  # baseline
                 check_once(cfg)
@@ -127,7 +127,7 @@ class Pipeline(unittest.TestCase):
     def test_one_send_and_reposts_chatter(self):
         with tempfile.TemporaryDirectory() as folder:
             path = Path(folder) / 'state.json'; StateStore(path).save()
-            cfg = Config(state_file=path, alert_all=True)
+            cfg = Config(qq_auto_translate=False, state_file=path, alert_all=True)
             items = [post(), post(), post(key="rt", is_repost=True), post("Codex quota is low", key="chat")]
             with patch("watcher.run.sources.collect", return_value=items), patch(
                     "watcher.run.notify.send_alert", return_value=[(True,"ok")]) as send:
@@ -137,7 +137,7 @@ class Pipeline(unittest.TestCase):
     def test_failed_delivery_is_not_retried(self):
         with tempfile.TemporaryDirectory() as folder:
             path = Path(folder) / 'state.json'; StateStore(path).save()
-            cfg = Config(state_file=path)
+            cfg = Config(qq_auto_translate=False, state_file=path)
             def fail_after_claim(*args):
                 self.assertTrue(StateStore(path).is_seen(post().key))
                 return [(False, "qq rejected")]
@@ -148,7 +148,7 @@ class Pipeline(unittest.TestCase):
 
     def test_offline_dry_run_no_io(self):
         with tempfile.TemporaryDirectory() as folder:
-            cfg = Config(state_file=Path(folder)/'state.json', pushplus_token="fake", pushplus_qq_option="fake")
+            cfg = Config(qq_auto_translate=False, state_file=Path(folder)/'state.json', pushplus_token="fake", pushplus_qq_option="fake")
             with patch("watcher.run.sources.collect") as fetch, patch("watcher.notify.http_post") as send:
                 check_once(cfg, dry_run=True, sample_posts=[post()])
                 send.assert_not_called(); fetch.assert_not_called()
@@ -164,7 +164,7 @@ class Pipeline(unittest.TestCase):
         for metadata in [{"is_retweet":True}, {"author_user_name":"other"}]:
             with patch("watcher.sources.get_json", return_value={"items":[{
                     "external_id":"123", "content":post().body, "metadata":metadata}]}):
-                self.assertTrue(fetch_x_posts(Config())[0].is_repost)
+                self.assertTrue(fetch_x_posts(Config(qq_auto_translate=False, ))[0].is_repost)
 
 
 if __name__ == '__main__': unittest.main()

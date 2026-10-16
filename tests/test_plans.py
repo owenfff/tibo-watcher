@@ -69,7 +69,7 @@ class PublicPlans(unittest.TestCase):
     def test_qq_delivery_and_dedupe(self):
         with tempfile.TemporaryDirectory() as folder:
             path = Path(folder) / 'state.json'; StateStore(path).save()
-            cfg = Config(state_file=path, pushplus_token='test', pushplus_qq_option='test')
+            cfg = Config(qq_auto_translate=False, state_file=path, pushplus_token='test', pushplus_qq_option='test')
             item = post("We will launch voice for Codex tomorrow.")
             with patch('watcher.run.sources.collect', return_value=[item]), patch(
                     'watcher.notify.http_post', return_value=(200, '{"code":200}')) as send:

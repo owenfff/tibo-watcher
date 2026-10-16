@@ -1,0 +1,103 @@
+"""Best-effort English-to-Chinese translation of public posts, without API keys."""
+from __future__ import annotations
+
+import html
+import re
+from urllib.parse import urlencode
+
+from .daily import DAY_MARKER
+from .fetch import get_json
+
+MAX_SOURCE_CHARS = 1000
+MAX_TRANSLATION_CHARS = 1100
+MAX_CHUNK_BYTES = 450
+
+
+def clean_text(text: str) -> str:
+    text = html.unescape(text)
+    text = re.sub(r'<[^>]*>', ' ', text)
+    text = re.sub(r'(?i)(?:https?://|www\.)\S+', ' ', text)
+    text = re.sub(r'(?i)\b(?:[a-z0-9-]+\.)+[a-z]{2,63}(?:/\S*)?', ' ', text)
+    text = re.sub(r'(?i)http\S*', ' ', text)
+    text = re.sub(r'[*_`#>\[\]]', '', text)
+    return ' '.join(text.split())
+
+
+def _chunks(text: str) -> list[str]:
+    result, chunk, size = [], '', 0
+    for char in text:
+        length = len(char.encode('utf-8'))
+        if size + length > MAX_CHUNK_BYTES:
+            # Prefer a word boundary so an English word is not split in two.
+            split = chunk.rfind(' ')
+            if split > len(chunk) // 2:
+                result.append(chunk[:split])
+                chunk = chunk[split + 1:]
+                size = len(chunk.encode('utf-8'))
+            else:
+                result.append(chunk)
+                chunk, size = '', 0
+        chunk += char
+        size += length
+    if chunk:
+        result.append(chunk)
+    return result
+
+
+def _neutralize_clock(text: str) -> str:
+    # Keep the authoritative Beijing timestamp in the existing second line.
+    # Do not reproduce a machine-converted or timezone-ambiguous event clock.
+    text = re.sub(r'(?i)\b\d{1,2}(?::\d{2})?\s*(?:am|pm)\s*(?:PT|PST|PDT|ET|EST|EDT|UTC|GMT)?\b',
+                  '（执行时刻以北京时间说明为准）', text)
+    text = re.sub(r'(?i)\b\d{1,2}:\d{2}\s*(?:PT|PST|PDT|ET|EST|EDT|UTC|GMT)?\b',
+                  '（执行时刻以北京时间说明为准）', text)
+    text = re.sub(r'(?:上午|下午|晚上|早上|凌晨)?\d{1,2}[点时](?:\d{1,2}分)?',
+                  '（执行时刻以北京时间说明为准）', text)
+    text = re.sub(r'(?i)\b(?:today|tomorrow|tonight|yesterday)\b|今天|明天|今晚|昨天|昨晚',
+                  '原帖所指日期', text)
+    return text
+
+
+def translate_public_post(text: str) -> str | None:
+    text = DAY_MARKER.sub('', text)
+    text = _neutralize_clock(clean_text(text))[:MAX_SOURCE_CHARS]
+    if not text:
+        return None
+    # Already-Chinese posts do not need an external request.
+    han = len(re.findall(r'[\u3400-\u9fff]', text))
+    latin = len(re.findall(r'[a-zA-Z]', text))
+    if han > latin:
+        return text[:MAX_TRANSLATION_CHARS]
+    try:
+        translated = []
+        for chunk in _chunks(text):
+            query = urlencode({'q': chunk, 'langpair': 'en|zh-CN'})
+            data = get_json('https://api.mymemory.translated.net/get?' + query,
+                            timeout=6, retries=0)
+            if not isinstance(data, dict) or str(data.get('responseStatus')) != '200' or data.get('quotaFinished'):
+                return None
+            result = data.get('responseData')
+            part = result.get('translatedText') if isinstance(result, dict) else None
+            if not isinstance(part, str) or not part.strip():
+                return None
+            translated.append(part)
+        output = _neutralize_clock(clean_text(' '.join(translated)))
+        if not re.search(r'[\u3400-\u9fff]', output):
+            return None
+        return output[:MAX_TRANSLATION_CHARS] + ('…' if len(output) > MAX_TRANSLATION_CHARS else '')
+    except (OSError, RuntimeError, ValueError, TypeError):
+        # Never log provider URLs/responses. A service outage must not stop QQ.
+        return None
+
+
+def add_translation(body: str, text: str) -> str:
+    translated = translate_public_post(text)
+    if not translated:
+        return body
+    lines = body.splitlines()
+    if len(lines) != 4:
+        return body
+    lines[2] += ' 机翻参考（状态以首行为准）：' + translated
+    result = '\n'.join(lines)
+    assert len(result) < 1900 and not re.search(r'http|www\.', result, re.I)
+    return result

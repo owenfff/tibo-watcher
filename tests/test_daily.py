@@ -53,7 +53,7 @@ class DailySeries(unittest.TestCase):
         self.assertIn('尚未确认已经交付', body)
 
     def test_qq_payload(self):
-        cfg = Config(pushplus_token='fake', pushplus_qq_option='fake')
+        cfg = Config(qq_auto_translate=False, pushplus_token='fake', pushplus_qq_option='fake')
         with patch('watcher.notify.http_post', return_value=(200,'{"code":200}')) as send:
             send_alert(cfg, post('Day 11/\nWe have improved capacity.'), 3, 'daily-series')
             send.assert_called_once()
@@ -62,7 +62,7 @@ class DailySeries(unittest.TestCase):
             self.assertNotIn('http', data['content'])
 
     def test_own_daily_commentary_with_quote_and_plain_retweet(self):
-        cfg = Config(pushplus_token='fake', pushplus_qq_option='fake')
+        cfg = Config(qq_auto_translate=False, pushplus_token='fake', pushplus_qq_option='fake')
         with patch('watcher.notify.http_post', return_value=(200,'{"code":200}')) as send:
             send_alert(cfg, post('Day 2.4/\nDecisions API is live.', is_quote=True), 3, 'daily-series')
             send.assert_called_once()

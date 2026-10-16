@@ -61,6 +61,7 @@ class Config:
 
     pushplus_token: str = ""
     pushplus_qq_option: str = ""
+    qq_auto_translate: bool = True
 
     verbose: bool = False
 
@@ -100,6 +101,7 @@ def load_config(**overrides) -> Config:
         mail_to=env("MAIL_TO", "").strip(),
         pushplus_token=env("PUSHPLUS_TOKEN", "").strip(),
         pushplus_qq_option=env("PUSHPLUS_QQ_OPTION", "").strip(),
+        qq_auto_translate=_flag("QQ_AUTO_TRANSLATE", "1"),
         verbose=_flag("VERBOSE", "0"),
     )
     for key, value in overrides.items():
