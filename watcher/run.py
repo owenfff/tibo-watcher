@@ -6,6 +6,7 @@ from datetime import datetime
 from . import notify, sources
 from .config import Config
 from .events import BEIJING, classify_reset, format_qq
+from .plans import classify_plan
 from .detect import score_text, should_alert
 from .state import StateStore
 
@@ -42,7 +43,8 @@ def check_once(cfg: Config, *, prime: bool = False, dry_run: bool = False, sampl
         store.mark_seen(post.key)
         if not cfg.include_replies and post.is_reply:
             continue
-        if post.is_repost or not classify_reset(post.body):
+        event = classify_reset(post.body) or (classify_plan(post.body) if post.source == "x" else None)
+        if post.is_repost or event is None:
             continue
         if cfg.alert_all or should_alert(score, cfg.score_threshold):
             findings.append((post, score))

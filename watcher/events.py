@@ -6,6 +6,8 @@ from dataclasses import dataclass
 from datetime import datetime, timedelta, timezone
 from email.utils import parsedate_to_datetime
 
+from .plans import classify_plan, format_plan_qq
+
 BEIJING = timezone(timedelta(hours=8))
 BANKED = re.compile(r"\bbanked\s+resets?\b|重置券", re.I)
 ACTION = r"(?:reset(?:s|ting)?|refresh(?:ed|ing)?|replenish(?:ed|ing)?|restor(?:ed|ing)?|topp?ed\s+up|top\s+up|credit(?:ed|ing)|grant(?:ed|ing)?|added|补发|重置|恢复|补充)"
@@ -80,7 +82,7 @@ def beijing_time(raw: str) -> str:
 def format_qq(post) -> tuple[str, str]:
     event = classify_reset(post.body)
     if event is None:
-        raise ValueError("not a reset event")
+        return format_plan_qq(post, beijing_time(post.created_at))
     when = beijing_time(post.created_at)
     conclusion = {"预告": "重置预告", "重置券": "发放重置券",
                   "已完成": "已完成重置", "疑似重置": "疑似重置"}[event.status]

@@ -9,6 +9,7 @@ from datetime import datetime
 from .config import Config
 from .fetch import http_post
 from .model import Post
+from .plans import classify_plan
 from .events import BEIJING, classify_reset, format_qq
 
 SHORT_PREVIEW = 350
@@ -25,8 +26,9 @@ def format_alert(cfg: Config, post: Post, score_total: int, score_hits: str,
     where = "X @%s" % cfg.handle if post.source == "x" else "Codex changelog"
     when = post.created_at or "unknown time"
     limit = LONG_PREVIEW if long else SHORT_PREVIEW
+    kind = "Codex product plan" if not classify_reset(post.body) and classify_plan(post.body) else "Codex limits"
     return (
-        f"Possible Codex limits signal (score {score_total}: {score_hits})\n"
+        f"Possible {kind} signal (score {score_total}: {score_hits})\n"
         f"Source: {where} | {when}\n"
         f"{post.url}\n"
         f"---\n"
@@ -35,7 +37,8 @@ def format_alert(cfg: Config, post: Post, score_total: int, score_hits: str,
 
 
 def format_title(post: Post) -> str:
-    return f"Codex limits watch: {_clip(post.title, 80)}"
+    kind = "Codex plans" if not classify_reset(post.body) and classify_plan(post.body) else "Codex limits"
+    return f"{kind} watch: {_clip(post.title, 80)}"
 
 
 def _send_ntfy(cfg: Config, title: str, body: str, url: str) -> tuple[bool, str]:
@@ -126,7 +129,7 @@ def send_alert(cfg: Config, post: Post, score_total: int, score_hits: str) -> li
         logs.append(_isolated(_send_email, cfg, title, long_form))
     if (cfg.pushplus_token and cfg.pushplus_qq_option and post.source == "x"
             and cfg.handle.lower() == "thsottiaux" and not post.is_repost
-            and classify_reset(post.body)):
+            and (classify_reset(post.body) or classify_plan(post.body))):
         qq_title, qq_body = format_qq(post)
         logs.append(_send_qq(cfg, qq_title, qq_body))
     return logs

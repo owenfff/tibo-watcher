@@ -15,7 +15,7 @@ def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(
         prog="tibo-watcher",
         description="Push alerts when Tibo (@thsottiaux, Codex lead) or the "
-                    "Codex changelog hints at usage-limit resets.",
+                    "Codex changelog hints at usage-limit resets, plus public product plans on X.",
     )
     parser.add_argument("--version", action="version",
                         version=f"tibo-watcher {__version__}")
@@ -33,7 +33,7 @@ def build_parser() -> argparse.ArgumentParser:
                         help="send a test message to every configured channel "
                              "and exit")
     parser.add_argument("--alert-all", action="store_true",
-                        help="bypass score threshold for reset events only")
+                        help="bypass score threshold for monitored events only")
     parser.add_argument("--verbose", action="store_true",
                         help="print every new item and its score")
     parser.add_argument("--handle",

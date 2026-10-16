@@ -1,22 +1,22 @@
 # 🔄 tibo-watcher
 
-监控 @thsottiaux 的 Codex / ChatGPT Work 额度重置消息，支持 ntfy、Telegram、邮件及 PushPlus QQ 机器人。Python 3.10+，仅用标准库，无额外依赖。
+监控 @thsottiaux 的 Codex / ChatGPT Work 额度重置消息及公开产品计划，支持 ntfy、Telegram、邮件及 PushPlus QQ 机器人。Python 3.10+，仅用标准库，无额外依赖。
 
 沿用原项目的 Dayclaw 公开 X 时间线和官方 Codex changelog。无需 X Bearer Token，不调用付费 X API。公开镜像可能延迟或不可用；单个来源故障不阻塞另一个来源。GitHub Actions 保持每 10 分钟运行（GitHub 调度可能延迟）。
 
 ## 监控规则
 
 - 保留加权关键词打分：强信号 3 分、中信号 2 分、产品词 1 分；新增 banked reset 强信号。
-- 先要求存在重置、补发额度或重置券事件，再应用原有评分门槛。普通额度讨论、产品发布、转帖或引用帖不推送。转帖识别使用镜像提供的元数据、作者和 RT/QT 前缀；镜像若未提供标识，无法完全识别。
+- 先要求存在重置、补发额度、重置券或 Codex / ChatGPT Work 公开产品计划，再应用关键词评分门槛。计划消息仅来自 @thsottiaux 的 X 时间线，需有明确产品、开发/上线动作及意向或时间信号；普通讨论、已完成的普通产品发布、个人使用计划、转帖或引用帖不推送。转帖识别使用镜像提供的元数据、作者和 RT/QT 前缀；镜像若未提供标识，无法完全识别。
 - 状态为「预告 / 重置券 / 已完成 / 疑似重置」。未来时优先按预告处理；有否定、条件、推测等歧义时不说已到账。banked reset 表示可使用的重置券，不表示额度自动到账。
-- `ALERT_ALL=1` / `--alert-all` 只跳过分数门槛，仍过滤非重置事件及转帖。
+- `ALERT_ALL=1` / `--alert-all` 只跳过分数门槛，仍过滤非监控事件及转帖。
 - 首次运行及 `--prime` 只建立基线，不发送历史消息。每轮最多推送 5 条，沿用原项目行为。
 - 按稳定帖子 ID 去重，记录永久保留，不再裁剪到 1500 条。同一帖子后续修改不会再发。请保留 `watcher_state.json` 和 Actions 的持久化步骤。
 - 发送前保存去重记录，不自动重试失败消息，以避免重复。失败、超出每轮上限的帖子也视为已处理；极端情况下进程中断或状态未能推回 GitHub，不能保证跨运行的绝对一次性投递。不要删除或回滚状态文件。
 
 ## QQ 机器人（PushPlus）
 
-QQ 仅通过 PushPlus 官方机器人渠道发送，不涉及个人 QQ 登录、协议机器人、NapCat 或 Lagrange。QQ 只推送 @thsottiaux 时间线的重置事件，changelog 继续供原来的通知渠道使用，不会冒充其发帖。
+QQ 仅通过 PushPlus 官方机器人渠道发送，不涉及个人 QQ 登录、协议机器人、NapCat 或 Lagrange。QQ 只推送 @thsottiaux 时间线的重置事件及公开产品计划，changelog 继续供原来的通知渠道使用，不会冒充其发帖。
 
 ### 把机器人加入你的群
 
@@ -37,7 +37,7 @@ QQ 仅通过 PushPlus 官方机器人渠道发送，不涉及个人 QQ 登录、
 | `PUSHPLUS_TOKEN` | PushPlus 个人中心的发送 token |
 | `PUSHPLUS_QQ_OPTION` | 上述「发到QQ群」渠道配置的配置编码 |
 
-Actions 已将这两项传给程序，cron 保持 `*/10 * * * *`。缺少任意一项就跳过 QQ，不影响 ntfy / Telegram / 邮件。不要把真实值写进源码、示例、日志或提交。
+Actions 已将这两项传给程序，cron 为等价的 `0,10,20,30,40,50 * * * *`，保持每 10 分钟运行。缺少任意一项就跳过 QQ，不影响 ntfy / Telegram / 邮件。不要把真实值写进源码、示例、日志或提交。
 
 本地运行：复制 `.env.example` 为 `.env`，填写对应两项。`.env` 已被 Git 忽略；环境变量优先于 `.env`。
 
@@ -80,6 +80,29 @@ python3 main.py --dry-run --sample-post examples/possible-reset.json
 命令不抓取时间线、不发送任何通知、不写去重状态，即便已经配置真实 secrets 也不会发送。首次使用没有状态文件也能预览，不受基线抑制。输出标题应为 `Codex已完成重置 北京时间10-13 13:06`。
 
 可修改假帖 body 为 `We will give a banked reset today.` 测预告，或 `Your Codex banked reset is now available.` 测重置券。`--sample-post` 必须搭配 `--dry-run`；干跑禁止与 `--test-notify`、`--loop`、`--prime` 混用。
+
+## 公开产品计划：有新消息就推群
+
+除额度重置之外，监控明确提到 Codex / ChatGPT Work 的开发计划、上线预告、开放范围变化及延期安排。所有消息继续使用中文短标题、四行无链接正文及北京时间；推测写「疑似计划」，预告不写成已经上线。
+
+```text
+Codex新模型上线预告 北京时间10-16 09:00
+状态：时间安排
+北京时间：10-16 09:00（原帖发布时间）
+说明：Codex预告推出新模型，尚不代表已经上线；原帖相对时间折算预计北京时间10-16 12:00。
+来源：@thsottiaux
+```
+
+计划说明使用固定中文分类（如新模型、语音功能、Windows支持），不会复制含链接的原文。只有明确的「几小时/几分钟/几天后」才由发帖时刻折算北京时间；“tomorrow”“end of day”及未明确日期的时钟时间不擅自换算，写明未确认精确执行时刻。没有发帖的日子不发送空日报，也无法监控未公开的内部计划。
+
+上线这项规则时不清空历史去重状态，不补发以前已经处理过的计划帖；同一帖子同时涉及重置和计划时，重置通知优先，只发一次。
+
+```bash
+python3 main.py --dry-run --sample-post examples/product-plan.json
+python3 main.py --dry-run --sample-post examples/launch-announcement.json
+python3 main.py --dry-run --sample-post examples/rollout-plan.json
+python3 main.py --dry-run --sample-post examples/possible-plan.json
+```
 
 ## 原有通知渠道
 

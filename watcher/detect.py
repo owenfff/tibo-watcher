@@ -25,6 +25,9 @@ STRONG = [
 ]
 
 MEDIUM = [
+    ("product-plan", r"\b(?:will|plan(?:ning)?|going to|targeting|scheduled|might|may|could|coming to)\b|即将|计划|预告|预计|定于"),
+    ("product-launch", r"\b(?:launch(?:ing|es)?|ship(?:ping|s)?|releas(?:e|ing)|roll(?:ing)?\s+out|rollout|working\s+on)\b|上线|推出|开发"),
+    ("product-delay", r"\b(?:delay(?:ed)?|postpon(?:e|ed)|reschedul(?:e|ed))\b|延期|推迟|改期"),
     ("rate-limits", r"\brate\s*-?\s*limits?\b"),
     ("quota", r"\bquotas?\b"),
     ("usage-limits", r"\busage\s+(?:limits?|caps?)\b|\blocal\s+rate\s+limits?\b"),
