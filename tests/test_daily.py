@@ -15,7 +15,8 @@ class DailySeries(unittest.TestCase):
         cases = [
             ('Day 11/\nWe have landed changes and more compute to decrease "Selected model is at capacity".', 'Day11满载优化'),
             ("Day 9/\nWe've rolled out optimizations to how we store state on disk.", 'Day9磁盘优化'),
-            ('Day 7/\nWe have increased default context length to 500k.', 'Day7上下文更新'),
+            ('Day 7/\nWe have increased default context length to 500k. We will go higher in the future.', 'Day7上下文更新'),
+            ("Day 11/\nWe've landed changes to capacity. Let us know and we'll take a look.", 'Day11满载优化'),
             ('Day 2.4/\nDecisions API is live.', 'Day2.4决策接口更新'),
             ('Roundup of Day 2/\nApprove for me (auto-review) is now included.', 'Day2自动审批更新'),
         ]

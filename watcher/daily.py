@@ -66,7 +66,8 @@ def format_daily_qq(post, when: str, reset_event=None) -> tuple[str, str]:
         # Keep completion and future promises distinct even within the series.
         if re.search(r"\b(?:might|maybe|could|tentative)\b|可能|暂定", text, re.I):
             status, conclusion = "疑似更新", "疑似每日更新"
-        elif re.search(r"\b(?:we will|we'll|plan to|tomorrow|coming soon)\b|即将|将于|预告", text, re.I):
+        elif (re.search(r"\b(?:(?:we will|we'll)\s+(?:ship|release|launch|roll out|add|enable)|plan to|tomorrow|coming soon)\b|即将|将于|预告", text, re.I)
+              and not re.search(r"\b(?:landed|shipped|released|increased|rolled out|improved|is live|is now available)\b|已上线|已发布", text, re.I)):
             status, conclusion = "更新预告", "每日更新预告"
         detail = f"第{event.day}天公布{detail}"
         if status != "每日更新":
