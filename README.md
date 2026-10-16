@@ -1,13 +1,13 @@
 # 🔄 tibo-watcher
 
-监控 @thsottiaux 的 Codex / ChatGPT Work 额度重置消息及公开产品计划，支持 ntfy、Telegram、邮件及 PushPlus QQ 机器人。Python 3.10+，仅用标准库，无额外依赖。
+监控 @thsottiaux 的 Codex / ChatGPT Work 额度重置消息、公开产品计划及 Day N 每日进展系列，支持 ntfy、Telegram、邮件及 PushPlus QQ 机器人。Python 3.10+，仅用标准库，无额外依赖。
 
 沿用原项目的 Dayclaw 公开 X 时间线和官方 Codex changelog。无需 X Bearer Token，不调用付费 X API。公开镜像可能延迟或不可用；单个来源故障不阻塞另一个来源。GitHub Actions 保持每 10 分钟运行（GitHub 调度可能延迟）。
 
 ## 监控规则
 
 - 保留加权关键词打分：强信号 3 分、中信号 2 分、产品词 1 分；新增 banked reset 强信号。
-- 先要求存在重置、补发额度、重置券或 Codex / ChatGPT Work 公开产品计划，再应用关键词评分门槛。计划消息仅来自 @thsottiaux 的 X 时间线，需有明确产品、开发/上线动作及意向或时间信号；普通讨论、已完成的普通产品发布、个人使用计划、转帖或引用帖不推送。转帖识别使用镜像提供的元数据、作者和 RT/QT 前缀；镜像若未提供标识，无法完全识别。
+- 先要求存在重置、补发额度、重置券或 Codex / ChatGPT Work 公开产品计划，或 Day N 每日进展，再应用关键词评分门槛。计划消息仅来自 @thsottiaux 的 X 时间线，需有明确产品、开发/上线动作及意向或时间信号；普通讨论、没有 Day 编号的已完成普通发布、个人使用计划及纯转帖不推送。普通引用帖不推送；作者自己用 Day N 编号写的更新即便附带引用，也按每日进展处理。转帖识别使用镜像提供的元数据、作者和 RT/QT 前缀；镜像若未提供标识，无法完全识别。
 - 状态为「预告 / 重置券 / 已完成 / 疑似重置」。未来时优先按预告处理；有否定、条件、推测等歧义时不说已到账。banked reset 表示可使用的重置券，不表示额度自动到账。
 - `ALERT_ALL=1` / `--alert-all` 只跳过分数门槛，仍过滤非监控事件及转帖。
 - 首次运行及 `--prime` 只建立基线，不发送历史消息。每轮最多推送 5 条，沿用原项目行为。
@@ -16,7 +16,7 @@
 
 ## QQ 机器人（PushPlus）
 
-QQ 仅通过 PushPlus 官方机器人渠道发送，不涉及个人 QQ 登录、协议机器人、NapCat 或 Lagrange。QQ 只推送 @thsottiaux 时间线的重置事件及公开产品计划，changelog 继续供原来的通知渠道使用，不会冒充其发帖。
+QQ 仅通过 PushPlus 官方机器人渠道发送，不涉及个人 QQ 登录、协议机器人、NapCat 或 Lagrange。QQ 只推送 @thsottiaux 时间线的重置事件、公开产品计划及 Day N 每日进展，changelog 继续供原来的通知渠道使用，不会冒充其发帖。
 
 ### 把机器人加入你的群
 
@@ -80,6 +80,22 @@ python3 main.py --dry-run --sample-post examples/possible-reset.json
 命令不抓取时间线、不发送任何通知、不写去重状态，即便已经配置真实 secrets 也不会发送。首次使用没有状态文件也能预览，不受基线抑制。输出标题应为 `Codex已完成重置 北京时间10-13 13:06`。
 
 可修改假帖 body 为 `We will give a banked reset today.` 测预告，或 `Your Codex banked reset is now available.` 测重置券。`--sample-post` 必须搭配 `--dry-run`；干跑禁止与 `--test-notify`、`--loop`、`--prime` 混用。
+
+## Day N 每日进展系列（重点监控）
+
+专门匹配 @thsottiaux 的 `Day 1/`、`Day 2.4/`、`Day 11/`、`Roundup of Day 2/` 等独立行编号，覆盖 1–28 天及子更新。即便原帖没有再次提 Codex / ChatGPT Work，也没有未来时态，仍作为每日进展命中。不是只匹配未来的计划；已经交付的编号更新也会推送。
+
+标题保留 Day 编号和中文主题，例如 `Codex Day11满载优化 北京时间10-15 23:11`。正文仍为状态、北京时间、一句话说明、来源四行，绝不拼接原帖或链接。已知主题包括满载/任务续跑、磁盘占用、上下文、自动审批、会议纪要、决策接口、记忆及语音；未知主题标记每日进展，不臆造功能。
+
+`Day 8/ Reset` 这类短帖没有明确到账措辞时写「疑似重置」；若原文明确已完成、将要重置或发放重置券，沿用对应状态。预告不写成已交付；同一帖只发一次，不另外重复发计划和重置通知。
+
+```bash
+python3 main.py --dry-run --sample-post examples/day-improvement.json
+python3 main.py --dry-run --sample-post examples/day-reset.json
+python3 main.py --dry-run --sample-post examples/day-sub-update.json
+```
+
+沿用同一个 Dayclaw 来源及永久去重状态；不补发已经处理过的老 Day 帖。镜像若延迟、缺帖或没有引用/作者标识，监控仍可能延迟或漏报。
 
 ## 公开产品计划：有新消息就推群
 

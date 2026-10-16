@@ -6,6 +6,7 @@ from dataclasses import dataclass
 from datetime import datetime, timedelta, timezone
 from email.utils import parsedate_to_datetime
 
+from .daily import classify_daily, format_daily_qq
 from .plans import classify_plan, format_plan_qq
 
 BEIJING = timezone(timedelta(hours=8))
@@ -81,6 +82,8 @@ def beijing_time(raw: str) -> str:
 
 def format_qq(post) -> tuple[str, str]:
     event = classify_reset(post.body)
+    if classify_daily(post.body):
+        return format_daily_qq(post, beijing_time(post.created_at), event)
     if event is None:
         return format_plan_qq(post, beijing_time(post.created_at))
     when = beijing_time(post.created_at)

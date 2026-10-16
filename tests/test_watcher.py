@@ -161,7 +161,7 @@ class Pipeline(unittest.TestCase):
         with self.assertRaises(SystemExit): main(["--sample-post", "examples/reset-post.json"])
 
     def test_repost_metadata(self):
-        for metadata in [{"is_retweet":True}, {"is_quote":True}, {"author_user_name":"other"}]:
+        for metadata in [{"is_retweet":True}, {"author_user_name":"other"}]:
             with patch("watcher.sources.get_json", return_value={"items":[{
                     "external_id":"123", "content":post().body, "metadata":metadata}]}):
                 self.assertTrue(fetch_x_posts(Config())[0].is_repost)

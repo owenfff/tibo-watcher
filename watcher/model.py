@@ -13,3 +13,4 @@ class Post:
     created_at: str
     is_reply: bool = False
     is_repost: bool = False
+    is_quote: bool = False

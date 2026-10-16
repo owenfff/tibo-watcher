@@ -9,6 +9,7 @@ from datetime import datetime
 from .config import Config
 from .fetch import http_post
 from .model import Post
+from .daily import classify_daily
 from .plans import classify_plan
 from .events import BEIJING, classify_reset, format_qq
 
@@ -26,7 +27,7 @@ def format_alert(cfg: Config, post: Post, score_total: int, score_hits: str,
     where = "X @%s" % cfg.handle if post.source == "x" else "Codex changelog"
     when = post.created_at or "unknown time"
     limit = LONG_PREVIEW if long else SHORT_PREVIEW
-    kind = "Codex product plan" if not classify_reset(post.body) and classify_plan(post.body) else "Codex limits"
+    kind = "Codex daily update" if classify_daily(post.body) else "Codex product plan" if not classify_reset(post.body) and classify_plan(post.body) else "Codex limits"
     return (
         f"Possible {kind} signal (score {score_total}: {score_hits})\n"
         f"Source: {where} | {when}\n"
@@ -37,7 +38,7 @@ def format_alert(cfg: Config, post: Post, score_total: int, score_hits: str,
 
 
 def format_title(post: Post) -> str:
-    kind = "Codex plans" if not classify_reset(post.body) and classify_plan(post.body) else "Codex limits"
+    kind = "Codex daily updates" if classify_daily(post.body) else "Codex plans" if not classify_reset(post.body) and classify_plan(post.body) else "Codex limits"
     return f"{kind} watch: {_clip(post.title, 80)}"
 
 
@@ -129,7 +130,8 @@ def send_alert(cfg: Config, post: Post, score_total: int, score_hits: str) -> li
         logs.append(_isolated(_send_email, cfg, title, long_form))
     if (cfg.pushplus_token and cfg.pushplus_qq_option and post.source == "x"
             and cfg.handle.lower() == "thsottiaux" and not post.is_repost
-            and (classify_reset(post.body) or classify_plan(post.body))):
+            and (not post.is_quote or classify_daily(post.body))
+            and (classify_reset(post.body) or classify_daily(post.body) or classify_plan(post.body))):
         qq_title, qq_body = format_qq(post)
         logs.append(_send_qq(cfg, qq_title, qq_body))
     return logs

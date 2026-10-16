@@ -3,6 +3,8 @@ from __future__ import annotations
 import re
 from dataclasses import dataclass, field
 
+from .daily import DAY_PATTERN
+
 RESET_VERBS = (
     r"(?:reset(?:ting)?|refresh(?:ing|ed)?|rolled\s*over|rolling\s*over|"
     r"rollover|topped\s*up|top\s*up|replenish(?:ed|ing)?|restor(?:ed|ing)?)"
@@ -13,6 +15,7 @@ LIMIT_NOUNS = (
 )
 
 STRONG = [
+    ("daily-series", DAY_PATTERN),
     ("banked-reset", r"\bbanked\s+resets?\b|重置券"),
     ("limits-reset",
      rf"{LIMIT_NOUNS}(.{{0,60}}?){RESET_VERBS}|{RESET_VERBS}(.{{0,60}}?){LIMIT_NOUNS}"),

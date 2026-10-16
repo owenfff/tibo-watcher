@@ -28,11 +28,11 @@ def fetch_x_posts(cfg: Config) -> list[Post]:
             created_at=item.get("published_at") or "",
             is_repost=bool(metadata.get("is_retweet") or metadata.get("isRetweet")
                            or metadata.get("retweeted_status") or metadata.get("is_repost")
-                           or metadata.get("is_quote") or metadata.get("isQuote")
-                           or metadata.get("quoted_status") or metadata.get("quoted_tweet")
                            or re.match(r"^(?:RT|QT)\s+@", text)
                            or (metadata.get("author_user_name")
                                and metadata["author_user_name"].lower() != cfg.handle.lower())),
+            is_quote=bool(metadata.get("is_quote") or metadata.get("isQuote")
+                          or metadata.get("quoted_status") or metadata.get("quoted_tweet")),
             is_reply=bool(metadata.get("is_reply") or metadata.get("isReply")),
         ))
     return posts
