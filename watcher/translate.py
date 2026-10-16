@@ -70,10 +70,13 @@ def translate_public_post(text: str) -> str | None:
         return text[:MAX_TRANSLATION_CHARS]
     try:
         translated = []
-        for chunk in _chunks(text):
+        chunks = _chunks(text)
+        if len(chunks) > 4:
+            return None
+        for chunk in chunks:
             query = urlencode({'q': chunk, 'langpair': 'en|zh-CN'})
             data = get_json('https://api.mymemory.translated.net/get?' + query,
-                            timeout=6, retries=0)
+                            timeout=12, retries=0)
             if not isinstance(data, dict) or str(data.get('responseStatus')) != '200' or data.get('quotaFinished'):
                 return None
             result = data.get('responseData')
