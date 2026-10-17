@@ -1,0 +1,23 @@
+[Unit]
+Description=Tibo public post watcher and QQ notifications
+Wants=network-online.target
+After=network-online.target
+
+[Service]
+Type=oneshot
+User=tibo-watcher
+Group=tibo-watcher
+WorkingDirectory=/opt/tibo-watcher/current
+EnvironmentFile=/etc/tibo-watcher.env
+Environment=STATE_FILE=/var/lib/tibo-watcher/state.json
+Environment=PYTHONDONTWRITEBYTECODE=1
+StateDirectory=tibo-watcher
+StateDirectoryMode=0700
+ExecStartPre=/usr/bin/python3 /opt/tibo-watcher/current/deploy/check_env.py
+ExecStart=/usr/bin/flock -n /var/lib/tibo-watcher/run.lock /usr/bin/python3 /opt/tibo-watcher/current/main.py
+TimeoutStartSec=300
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ProtectHome=true
+ReadWritePaths=/var/lib/tibo-watcher

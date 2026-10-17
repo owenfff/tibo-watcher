@@ -1,0 +1,11 @@
+[Unit]
+Description=Check Tibo public posts every ten minutes
+
+[Timer]
+OnCalendar=*-*-* *:02/10:00
+Persistent=true
+AccuracySec=1s
+Unit=tibo-watcher.service
+
+[Install]
+WantedBy=timers.target

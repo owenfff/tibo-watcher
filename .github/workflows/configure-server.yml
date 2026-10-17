@@ -1,0 +1,36 @@
+name: configure-server
+on:
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  import-qq-configuration:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Import QQ configuration using a temporary restricted SSH key
+        env:
+          DEPLOY_HOST: ${{ secrets.TIBO_DEPLOY_HOST }}
+          DEPLOY_KEY: ${{ secrets.TIBO_DEPLOY_SSH_KEY }}
+          DEPLOY_KNOWN_HOSTS: ${{ secrets.TIBO_DEPLOY_KNOWN_HOSTS }}
+          PUSHPLUS_TOKEN: ${{ secrets.PUSHPLUS_TOKEN }}
+          PUSHPLUS_QQ_OPTION: ${{ secrets.PUSHPLUS_QQ_OPTION }}
+        run: |
+          python3 - <<'PY'
+          import json, os, pathlib, subprocess, sys, tempfile
+          required = ('DEPLOY_HOST', 'DEPLOY_KEY', 'DEPLOY_KNOWN_HOSTS', 'PUSHPLUS_TOKEN', 'PUSHPLUS_QQ_OPTION')
+          if any(not os.environ.get(k) for k in required):
+              sys.exit('Missing deployment configuration')
+          with tempfile.TemporaryDirectory() as temp:
+              key = pathlib.Path(temp) / 'key'
+              key.write_text(os.environ['DEPLOY_KEY'] + '\n')
+              key.chmod(0o600)
+              hosts = pathlib.Path(temp) / 'known_hosts'
+              hosts.write_text(os.environ['DEPLOY_KNOWN_HOSTS'] + '\n')
+              data = {k: os.environ[k] for k in ('PUSHPLUS_TOKEN', 'PUSHPLUS_QQ_OPTION')}
+              command = ['ssh', '-i', str(key), '-o', 'IdentitiesOnly=yes', '-o', 'BatchMode=yes', '-o', 'StrictHostKeyChecking=yes', '-o', 'UserKnownHostsFile=' + str(hosts), '-o', 'ConnectTimeout=20', 'root@' + os.environ['DEPLOY_HOST'], 'import']
+              result = subprocess.run(command, input=json.dumps(data).encode(), capture_output=True, timeout=45)
+              if result.returncode:
+                  sys.exit('Restricted configuration import failed; credentials are not printed')
+              print('QQ configuration securely imported on server')
+          PY
