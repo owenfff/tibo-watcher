@@ -20,6 +20,9 @@ def run_requested_diagnostic(cfg):
         print('QQ DIAGNOSTIC: missing PUSHPLUS_TOKEN or PUSHPLUS_QQ_OPTION', flush=True)
         return False
     store = StateStore(cfg.state_file)
+    if store.fresh_file:
+        print('QQ DIAGNOSTIC: waiting for normal first-run baseline', flush=True)
+        return True
     key = 'diagnostic:qq:' + nonce
     if store.is_seen(key):
         return True

@@ -198,3 +198,5 @@ examples/reset-post.json    无密钥的假帖
 Actions 保留每 10 分钟的 schedule；当前尚未观察到自动触发，不能视为已恢复。GitHub 定时可能延迟或丢弃；必须在 Actions 中看到 `schedule` 运行记录才算验证定时生效。手动成功不代表定时成功。日志 `DELIVERY OK qq accepted by PushPlus` 仅表示服务已受理，不保证 QQ 最终送达；`pushed` 仅统计至少一个渠道受理的帖子。
 
 推送接口拒绝或传输失败时，CLI 返回非零退出码，Actions 显示失败，并继续保存去重状态。只记录 HTTP 状态及数字业务码，不输出可能包含密钥的响应正文。已尝试的帖子不会自动重试。
+
+QQ 推送排错：业务码 `905` 表示 PushPlus 账号未实名认证，必须由账号本人在 PushPlus 完成认证；`903` 表示令牌不正确。购买会员不能用于判断这些错误是否已解决。`qq-diagnostic.json` 的 `request_id` 用于明确请求一次中文 QQ 通道测试，每个编号仅尝试一次；普通干跑不会触发测试。不要修改编号来反复请求受限接口。
