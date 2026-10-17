@@ -9,6 +9,7 @@ from .model import Post
 from . import __version__, notify
 from .config import load_config
 from .run import check_once, run_loop
+from .qq_diagnostic import run_requested_diagnostic
 
 
 def build_parser() -> argparse.ArgumentParser:
@@ -90,5 +91,8 @@ def main(argv: list[str] | None = None) -> int:
         check_once(cfg, dry_run=True, sample_posts=[post])
         return 0
 
+    diagnostic_ok = True
+    if not args.dry_run and not args.prime:
+        diagnostic_ok = run_requested_diagnostic(cfg)
     check_once(cfg, prime=args.prime, dry_run=args.dry_run)
-    return 2 if getattr(cfg, "delivery_failed", False) else 0
+    return 2 if not diagnostic_ok or getattr(cfg, "delivery_failed", False) else 0

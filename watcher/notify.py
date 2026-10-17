@@ -107,7 +107,22 @@ def _send_qq(cfg: Config, title: str, body: str) -> tuple[bool, str]:
         ok = status == 200 and isinstance(result, dict) and result.get("code") == 200
         code = result.get("code") if isinstance(result, dict) else None
         safe_code = str(code) if type(code) is int else "unknown"
-        return ok, "qq accepted by PushPlus" if ok else f"qq rejected [HTTP {status}, code {safe_code}]"
+        # Classify errors into fixed labels; never copy provider response text.
+        reason = "未分类错误"
+        msg = result.get("msg", "") if isinstance(result, dict) else ""
+        if isinstance(msg, str):
+            for words, label in [(("实名",), "需要实名认证"),
+                                 (("token", "令牌"), "令牌相关错误"),
+                                 (("主动",), "机器人主动消息权限相关错误"),
+                                 (("配置", "option"), "QQ渠道配置相关错误"),
+                                 (("机器人", "群组", "QQ群"), "QQ机器人或群绑定相关错误"),
+                                 (("会员",), "会员权限相关错误"),
+                                 (("积分", "余额"), "积分或余额相关错误"),
+                                 (("次数", "频率", "受限"), "请求额度或频率相关错误")]:
+                if any(word.lower() in msg.lower() for word in words):
+                    reason = label
+                    break
+        return ok, "qq accepted by PushPlus" if ok else f"qq rejected [HTTP {status}, code {safe_code}, {reason}]"
     except (OSError, ValueError):
         return False, "qq request failed (no automatic retry)"
 
