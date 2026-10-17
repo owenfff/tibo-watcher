@@ -4,7 +4,7 @@ on:
   push:
     branches: [master]
   schedule:
-    - cron: "0,10,20,30,40,50 * * * *"
+    - cron: "7,17,27,37,47,57 * * * *"
   workflow_dispatch:
 
 permissions:
@@ -20,14 +20,11 @@ jobs:
     timeout-minutes: 10
     steps:
       - uses: actions/checkout@v5
-
       - uses: actions/setup-python@v6
         with:
           python-version: "3.12"
-
       - name: Offline regression tests
         run: python -m unittest discover -s tests -v
-
       - name: Run one check cycle
         run: python main.py
         env:
@@ -43,17 +40,14 @@ jobs:
           SMTP_PASSWORD: ${{ secrets.SMTP_PASSWORD }}
           MAIL_FROM: ${{ secrets.MAIL_FROM }}
           MAIL_TO: ${{ secrets.MAIL_TO }}
-
       - name: Persist dedupe state
         if: always()
         run: |
-          git config user.name  "tibo-watcher-bot"
+          git config user.name "tibo-watcher-bot"
           git config user.email "actions@users.noreply.github.com"
           if [ ! -f watcher_state.json ]; then exit 0; fi
           git add -f watcher_state.json
-          if git diff --cached --quiet; then
-            echo "state unchanged, nothing to commit"
-          else
+          if ! git diff --cached --quiet; then
             git commit -m "state: record seen posts [skip ci]"
             git push
           fi
