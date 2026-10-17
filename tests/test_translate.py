@@ -27,7 +27,9 @@ class Translation(unittest.TestCase):
             self.assertNotIn('机翻参考', data['content'])
             self.assertNotIn('说明：', data['content'])
             self.assertIn('磁盘占用减少了60%', data['content'])
-            self.assertEqual(len(data['content'].splitlines()), 2)
+            self.assertEqual(len(data['content'].splitlines()), 3)
+            self.assertIn('原文：Day 11/', data['content'])
+            self.assertIn('译文：磁盘占用减少了60%', data['content'])
             self.assertNotRegex(data['title']+data['content'], r'http|t\.co')
 
     def test_source_and_output_link_cleaning(self):

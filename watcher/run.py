@@ -82,7 +82,7 @@ def check_once(cfg: Config, *, prime: bool = False, dry_run: bool = False, sampl
         if dry_run:
             if post.source == "x":
                 title, body = format_qq(post)
-                body = compact_qq_body(body)
+                body = compact_qq_body(body, post.body)
                 print(f"DRY-RUN QQ 预览（不发送）\n{title}\n{body}")
             else:
                 log(f"DRY-RUN changelog match: score {score.total}")

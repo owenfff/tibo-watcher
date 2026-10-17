@@ -129,8 +129,8 @@ def add_translation(body: str, text: str) -> str:
     return result
 
 
-def compact_qq_body(body: str) -> str:
-    """Keep the translation readable on its own, with a short attribution."""
+def compact_qq_body(body: str, original: str = '') -> str:
+    """Show the sanitized original followed by its Chinese translation."""
     lines = body.splitlines()
     if len(lines) != 4:
         return body
@@ -139,4 +139,13 @@ def compact_qq_body(body: str) -> str:
     if target:
         when = '北京时间' + target.group(2) + target.group(3)
         text = text.replace('上述北京时间截止前', when).replace('上方换算的北京时间窗口', when)
-    return clean_text(text) + '\n来源：@thsottiaux'
+    translated = clean_text(text)
+    source = clean_text(original)
+    if not source:
+        return translated + '\n来源：@thsottiaux'
+    label = '原文'
+    if len(source) > 700:
+        source = source[:699] + '…'
+        label += '（节选）'
+    label_zh = '译文' if lines[2].startswith('原文译文：') else '中文摘要（翻译暂不可用）'
+    return f'{label}：{source}\n{label_zh}：{translated}\n来源：@thsottiaux'

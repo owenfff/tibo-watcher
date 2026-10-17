@@ -164,7 +164,7 @@ def send_alert(cfg: Config, post: Post, score_total: int, score_hits: str) -> li
         qq_title, qq_body = format_qq(post)
         if cfg.qq_auto_translate:
             qq_body = add_translation(qq_body, post.body)
-        qq_body = compact_qq_body(qq_body)
+        qq_body = compact_qq_body(qq_body, post.body)
         logs.append(_send_qq(cfg, qq_title, qq_body))
     return logs
 
