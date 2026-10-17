@@ -37,7 +37,7 @@ QQ 仅通过 PushPlus 官方机器人渠道发送，不涉及个人 QQ 登录、
 | `PUSHPLUS_TOKEN` | PushPlus 个人中心的发送 token |
 | `PUSHPLUS_QQ_OPTION` | 上述「发到QQ群」渠道配置的配置编码 |
 
-Actions 已将这两项传给程序，cron 为等价的 `0,10,20,30,40,50 * * * *`，保持每 10 分钟运行。缺少任意一项就跳过 QQ，不影响 ntfy / Telegram / 邮件。不要把真实值写进源码、示例、日志或提交。
+Actions 已将这两项传给程序，cron 为等价的 `7,17,27,37,47,57 * * * *`，保持每 10 分钟运行。缺少任意一项就跳过 QQ，不影响 ntfy / Telegram / 邮件。不要把真实值写进源码、示例、日志或提交。
 
 本地运行：复制 `.env.example` 为 `.env`，填写对应两项。`.env` 已被 Git 忽略；环境变量优先于 `.env`。
 
@@ -180,7 +180,7 @@ watcher/state.py            永久去重记录，原子写入
 watcher/run.py              检查和循环
 watcher/cli.py              CLI 及离线假帖干跑
 examples/reset-post.json    无密钥的假帖
-.github/workflows/watch.yml 每 10 分钟运行及持久化状态
+.github/workflows/monitor.yml 每 10 分钟运行及持久化状态
 ```
 
 非官方工具，基于公开措辞作保守判断，仍可能漏报或误判。
