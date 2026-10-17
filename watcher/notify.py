@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+import re
 import smtplib
 import ssl
 from email.message import EmailMessage
@@ -122,6 +123,15 @@ def _send_qq(cfg: Config, title: str, body: str) -> tuple[bool, str]:
                 if any(word.lower() in msg.lower() for word in words):
                     reason = label
                     break
+        if not ok and code == 999 and isinstance(msg, str):
+            # Only Chinese error words survive; redact configured values first.
+            for secret in (cfg.pushplus_token, cfg.pushplus_qq_option):
+                if secret:
+                    msg = msg.replace(secret, "")
+            detail = re.sub(r"[^\u4e00-\u9fff，。；：！？、（） ]", "", msg)
+            detail = " ".join(detail.split())[:120]
+            if detail:
+                reason += "：" + detail
         return ok, "qq accepted by PushPlus" if ok else f"qq rejected [HTTP {status}, code {safe_code}, {reason}]"
     except (OSError, ValueError):
         return False, "qq request failed (no automatic retry)"
