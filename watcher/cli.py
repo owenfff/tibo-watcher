@@ -91,4 +91,4 @@ def main(argv: list[str] | None = None) -> int:
         return 0
 
     check_once(cfg, prime=args.prime, dry_run=args.dry_run)
-    return 0
+    return 2 if getattr(cfg, "delivery_failed", False) else 0

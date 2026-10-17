@@ -195,4 +195,6 @@ examples/reset-post.json    无密钥的假帖
 
 首次接入 Codexy 会记录已有归档，不刷历史消息；公开镜像发现的普通帖子只推最近 24 小时的新帖。`recovery-posts.json` 可列出需要补查的真实原帖 ID，仍必须核验作者并经过分类、评分和同一份去重状态；已记录的原帖不会重发。它不是假帖子测试入口。
 
-Actions 每小时第 7、17、27、37、47、57 分钟运行，以避开整点高峰。GitHub 定时可能延迟或丢弃；必须在 Actions 中看到 `schedule` 运行记录才算验证定时生效。手动成功不代表定时成功。日志 `DELIVERY OK qq accepted by PushPlus` 仅表示服务已受理，不保证 QQ 最终送达；`pushed` 仅统计至少一个渠道受理的帖子。
+Actions 保留每 10 分钟的 schedule；当前尚未观察到自动触发，不能视为已恢复。GitHub 定时可能延迟或丢弃；必须在 Actions 中看到 `schedule` 运行记录才算验证定时生效。手动成功不代表定时成功。日志 `DELIVERY OK qq accepted by PushPlus` 仅表示服务已受理，不保证 QQ 最终送达；`pushed` 仅统计至少一个渠道受理的帖子。
+
+推送接口拒绝或传输失败时，CLI 返回非零退出码，Actions 显示失败，并继续保存去重状态。只记录 HTTP 状态及数字业务码，不输出可能包含密钥的响应正文。已尝试的帖子不会自动重试。

@@ -52,3 +52,12 @@ class PublicMonitors(unittest.TestCase):
                     'watcher.run.notify.send_alert') as send:
                 check_once(cfg)
                 send.assert_not_called()
+
+    def test_rejection_logs_only_numeric_code(self):
+        from watcher.notify import _send_qq
+        cfg = Config(pushplus_token='private-token', pushplus_qq_option='private-option')
+        with patch('watcher.notify.http_post', return_value=(200, '{"code":600,"msg":"private-token private-option"}')):
+            ok, note = _send_qq(cfg, 'title', 'body')
+            self.assertFalse(ok)
+            self.assertIn('code 600', note)
+            self.assertNotIn('private', note)

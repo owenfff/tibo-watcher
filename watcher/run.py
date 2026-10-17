@@ -76,6 +76,7 @@ def check_once(cfg: Config, *, prime: bool = False, dry_run: bool = False, sampl
             "no alerts sent (first run / prime)")
 
     pushed = 0
+    cfg.delivery_failed = False
     if len(findings) > MAX_ALERTS_PER_CYCLE:
         log(f"{len(findings)} findings, capping at {MAX_ALERTS_PER_CYCLE} "
             "pushes this cycle")
@@ -91,6 +92,7 @@ def check_once(cfg: Config, *, prime: bool = False, dry_run: bool = False, sampl
         store.save()
         results = notify.send_alert(cfg, post, score.total, score.hits)
         for ok, note in results:
+            cfg.delivery_failed = cfg.delivery_failed or not ok
             log(f"DELIVERY {'OK' if ok else 'FAILED'} {note}")
         if not results:
             log(f"finding scored {score.total} but no notification channel "

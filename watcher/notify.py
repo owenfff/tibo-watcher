@@ -105,7 +105,9 @@ def _send_qq(cfg: Config, title: str, body: str) -> tuple[bool, str]:
             headers={"Content-Type": "application/json"})
         result = json.loads(response)
         ok = status == 200 and isinstance(result, dict) and result.get("code") == 200
-        return ok, "qq accepted by PushPlus" if ok else f"qq rejected [{status}]"
+        code = result.get("code") if isinstance(result, dict) else None
+        safe_code = str(code) if type(code) is int else "unknown"
+        return ok, "qq accepted by PushPlus" if ok else f"qq rejected [HTTP {status}, code {safe_code}]"
     except (OSError, ValueError):
         return False, "qq request failed (no automatic retry)"
 
