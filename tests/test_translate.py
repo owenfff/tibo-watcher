@@ -23,17 +23,19 @@ class Translation(unittest.TestCase):
             send_alert(cfg, item, 3, 'daily-series')
             data=json.loads(send.call_args.args[1])
             self.assertIn('Day11', data['title'])
-            self.assertIn('机翻参考', data['content'])
+            self.assertIn('原文译文：', data['content'])
+            self.assertNotIn('机翻参考', data['content'])
+            self.assertNotIn('说明：', data['content'])
             self.assertIn('磁盘占用减少了60%', data['content'])
             self.assertEqual(len(data['content'].splitlines()), 4)
             self.assertNotRegex(data['title']+data['content'], r'http|t\.co')
 
     def test_source_and_output_link_cleaning(self):
-        with patch('watcher.translate.get_json', return_value=response('功能已改进。 https://t.co/a **查看** www.example.com')) as get:
+        with patch('watcher.translate.get_json', return_value=response('功能已改进。 https://t.co/a **查看** www.example.com 点击查看详情 View details')) as get:
             out=translate_public_post('Day 11/\nNew improvements. https://x.com/a')
             query=parse_qs(urlparse(get.call_args.args[0]).query)
             self.assertNotRegex(query['q'][0], r'http|x\.com|Day 11')
-            self.assertNotRegex(out, r'http|www|t\.co|\*')
+            self.assertNotRegex(out, r'http|www|t\.co|\*|查看详情|View details')
             self.assertEqual(query['langpair'],['en|zh-CN'])
 
     def test_failures_fall_back_to_original_chinese(self):

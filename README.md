@@ -1,5 +1,9 @@
 # 🔄 tibo-watcher
 
+> 当前正式监控由服务器上的 systemd 定时器直接运行，不依赖 Mac、Codex 或 GitHub 定时调度。服务不监听新的网络端口。
+> [deployment and maintenance](deploy/README.zh.md)
+
+
 监控 @thsottiaux 的 Codex / ChatGPT Work 额度重置消息、公开产品计划及 Day N 每日进展系列，支持 ntfy、Telegram、邮件及 PushPlus QQ 机器人。Python 3.10+，仅用标准库，无额外依赖。
 
 沿用原项目的 Dayclaw 公开 X 时间线和官方 Codex changelog。无需 X Bearer Token，不调用付费 X API。公开镜像可能延迟或不可用；单个来源故障不阻塞另一个来源。GitHub Actions 保持每 10 分钟运行（GitHub 调度可能延迟）。

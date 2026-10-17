@@ -64,14 +64,6 @@ def check_once(cfg: Config, *, prime: bool = False, dry_run: bool = False, sampl
 
     if baseline:
         findings = []
-    tracker_baseline = not store.is_seen("source:codexy:v1")
-    if any(p.feed == "codexy" for p in posts):
-        store.mark_seen("source:codexy:v1")
-        if tracker_baseline:
-            for post in posts:
-                if post.feed == "codexy":
-                    store.mark_seen(post.key)
-            log("codexy initial archive recorded; no historical alerts")
         log(f"baseline recorded: {store.tracked_count()} items tracked, "
             "no alerts sent (first run / prime)")
 

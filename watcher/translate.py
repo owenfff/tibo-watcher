@@ -20,6 +20,7 @@ def clean_text(text: str) -> str:
     text = re.sub(r'(?i)\b(?:[a-z0-9-]+\.)+[a-z]{2,63}(?:/\S*)?', ' ', text)
     text = re.sub(r'(?i)http\S*', ' ', text)
     text = re.sub(r'[*_`#>\[\]]', '', text)
+    text = re.sub(r'(?:点击|点此|请点击)?查看详情|(?i:view details|read more)', '', text)
     return ' '.join(text.split())
 
 
@@ -100,7 +101,7 @@ def add_translation(body: str, text: str) -> str:
     lines = body.splitlines()
     if len(lines) != 4:
         return body
-    lines[2] += ' 机翻参考（状态以首行为准）：' + translated
+    lines[2] = '原文译文：' + translated
     result = '\n'.join(lines)
     assert len(result) < 1900 and not re.search(r'http|www\.', result, re.I)
     return result

@@ -61,3 +61,17 @@ class PublicMonitors(unittest.TestCase):
             self.assertFalse(ok)
             self.assertIn('code 600', note)
             self.assertNotIn('private', note)
+
+    def test_existing_tracker_can_notify_without_false_baseline_log(self):
+        from contextlib import redirect_stdout
+        from io import StringIO
+        with tempfile.TemporaryDirectory() as d:
+            cfg = Config(state_file=Path(d) / 'state.json')
+            store = StateStore(cfg.state_file)
+            store.mark_seen('source:codexy:v1')
+            store.save()
+            item = tracker_posts({'handle':'thsottiaux','entries':[{'id':'2111492673890824348','text':'Day 13/ Le limit reset'}]})[0]
+            output = StringIO()
+            with patch('watcher.run.sources.collect', return_value=[item]), patch('watcher.run.notify.send_alert', return_value=[(True,'mock')]), redirect_stdout(output):
+                self.assertEqual(check_once(cfg), 1)
+            self.assertNotIn('baseline recorded', output.getvalue())

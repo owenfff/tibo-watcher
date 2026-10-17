@@ -2,6 +2,7 @@
 Description=Check Tibo public posts every ten minutes
 
 [Timer]
+OnActiveSec=15s
 OnCalendar=*-*-* *:02/10:00
 Persistent=true
 AccuracySec=1s
