@@ -37,7 +37,7 @@ QQ 仅通过 PushPlus 官方机器人渠道发送，不涉及个人 QQ 登录、
 | `PUSHPLUS_TOKEN` | PushPlus 个人中心的发送 token |
 | `PUSHPLUS_QQ_OPTION` | 上述「发到QQ群」渠道配置的配置编码 |
 
-Actions 已将这两项传给程序，cron 为等价的 `7,17,27,37,47,57 * * * *`，保持每 10 分钟运行。缺少任意一项就跳过 QQ，不影响 ntfy / Telegram / 邮件。不要把真实值写进源码、示例、日志或提交。
+Actions 已将这两项传给程序，cron 为等价的 `2,12,22,32,42,52 * * * *`，保持每 10 分钟运行。缺少任意一项就跳过 QQ，不影响 ntfy / Telegram / 邮件。不要把真实值写进源码、示例、日志或提交。
 
 本地运行：复制 `.env.example` 为 `.env`，填写对应两项。`.env` 已被 Git 忽略；环境变量优先于 `.env`。
 
@@ -195,7 +195,7 @@ examples/reset-post.json    无密钥的假帖
 
 首次接入 Codexy 会记录已有归档，不刷历史消息；公开镜像发现的普通帖子只推最近 24 小时的新帖。`recovery-posts.json` 可列出需要补查的真实原帖 ID，仍必须核验作者并经过分类、评分和同一份去重状态；已记录的原帖不会重发。它不是假帖子测试入口。
 
-Actions 的 schedule 已设为每小时第 7、17、27、37、47、57 分钟运行。GitHub 定时可能延迟或丢弃；必须在 Actions 中看到 `schedule` 运行记录才算验证定时生效。手动成功不代表定时成功。日志 `DELIVERY OK qq accepted by PushPlus` 仅表示服务已受理，不保证 QQ 最终送达；`pushed` 仅统计至少一个渠道受理的帖子。
+Actions 的 schedule 已设为每小时第 2、12、22、32、42、52 分钟运行。GitHub 定时可能延迟或丢弃；必须在 Actions 中看到 `schedule` 运行记录才算验证定时生效。手动成功不代表定时成功。日志 `DELIVERY OK qq accepted by PushPlus` 仅表示服务已受理，不保证 QQ 最终送达；`pushed` 仅统计至少一个渠道受理的帖子。
 
 推送接口拒绝或传输失败时，CLI 返回非零退出码，Actions 显示失败，并继续保存去重状态。只记录 HTTP 状态及数字业务码，不输出可能包含密钥的响应正文。已尝试的帖子不会自动重试。
 
