@@ -188,3 +188,11 @@ examples/reset-post.json    无密钥的假帖
 ## License
 
 [MIT](LICENSE)
+
+### 免费公开监控站补充来源
+
+保留 Dayclaw；同时读取 Codexy 的公开 `data/days.json`，并从 Twiscan / Twstalker 发现原帖 ID，再通过 FxTwitter 的免费公开接口核验作者、正文和发布时间。不需要 X Bearer Token 或额外密钥。第三方站点可能延迟、缺帖或不可用；这些问题会记录在 Actions 日志中。所有来源共用 `dayclaw:<原帖ID>` 去重键。
+
+首次接入 Codexy 会记录已有归档，不刷历史消息；公开镜像发现的普通帖子只推最近 24 小时的新帖。`recovery-posts.json` 可列出需要补查的真实原帖 ID，仍必须核验作者并经过分类、评分和同一份去重状态；已记录的原帖不会重发。它不是假帖子测试入口。
+
+Actions 每小时第 7、17、27、37、47、57 分钟运行，以避开整点高峰。GitHub 定时可能延迟或丢弃；必须在 Actions 中看到 `schedule` 运行记录才算验证定时生效。手动成功不代表定时成功。日志 `DELIVERY OK qq accepted by PushPlus` 仅表示服务已受理，不保证 QQ 最终送达；`pushed` 仅统计至少一个渠道受理的帖子。

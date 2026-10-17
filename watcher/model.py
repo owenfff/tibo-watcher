@@ -14,3 +14,4 @@ class Post:
     is_reply: bool = False
     is_repost: bool = False
     is_quote: bool = False
+    feed: str = ""

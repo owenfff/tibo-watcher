@@ -6,6 +6,7 @@ import re
 from .config import Config
 from .fetch import get_json, http_get
 from .model import Post
+from .public_monitors import fetch_public_monitors
 
 
 def fetch_x_posts(cfg: Config) -> list[Post]:
@@ -89,6 +90,7 @@ def collect(cfg: Config) -> list[Post]:
         posts.extend(fetch_x_posts(cfg))
     except Exception as error:
         print(f"[warn] X/Dayclaw source failed: {error}")
+    posts.extend(fetch_public_monitors(cfg))
     if cfg.watch_changelog:
         try:
             posts.extend(fetch_changelog_entries(cfg))

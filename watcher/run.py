@@ -10,6 +10,7 @@ from .daily import classify_daily
 from .plans import classify_plan
 from .detect import score_text, should_alert
 from .state import StateStore
+from .public_monitors import old_mirror_post
 
 MAX_ALERTS_PER_CYCLE = 5
 
@@ -33,6 +34,14 @@ def check_once(cfg: Config, *, prime: bool = False, dry_run: bool = False, sampl
     store = StateStore(cfg.state_file)
     baseline = (store.fresh_file or prime) and sample_posts is None
     findings = []
+    tracker_baseline = not store.is_seen("source:codexy:v1")
+    if any(p.feed == "codexy" for p in posts):
+        store.mark_seen("source:codexy:v1")
+        if tracker_baseline:
+            for post in posts:
+                if post.feed == "codexy":
+                    store.mark_seen(post.key)
+            log("codexy initial archive recorded; no historical alerts")
 
     for post in posts:
         if store.is_seen(post.key):
@@ -42,6 +51,8 @@ def check_once(cfg: Config, *, prime: bool = False, dry_run: bool = False, sampl
             log(f"new {post.source} item, score {score.total} ({score.hits}): "
                 f"{post.title[:70]}")
         store.mark_seen(post.key)
+        if old_mirror_post(post):
+            continue
         if not cfg.include_replies and post.is_reply:
             continue
         event = classify_reset(post.body) or ((classify_daily(post.body) or classify_plan(post.body)) if post.source == "x" else None)
@@ -53,6 +64,14 @@ def check_once(cfg: Config, *, prime: bool = False, dry_run: bool = False, sampl
 
     if baseline:
         findings = []
+    tracker_baseline = not store.is_seen("source:codexy:v1")
+    if any(p.feed == "codexy" for p in posts):
+        store.mark_seen("source:codexy:v1")
+        if tracker_baseline:
+            for post in posts:
+                if post.feed == "codexy":
+                    store.mark_seen(post.key)
+            log("codexy initial archive recorded; no historical alerts")
         log(f"baseline recorded: {store.tracked_count()} items tracked, "
             "no alerts sent (first run / prime)")
 
@@ -72,12 +91,11 @@ def check_once(cfg: Config, *, prime: bool = False, dry_run: bool = False, sampl
         store.save()
         results = notify.send_alert(cfg, post, score.total, score.hits)
         for ok, note in results:
-            if not ok:
-                log(f"DELIVERY FAILED {note}")
+            log(f"DELIVERY {'OK' if ok else 'FAILED'} {note}")
         if not results:
             log(f"finding scored {score.total} but no notification channel "
                 "is configured (set NTFY_TOPIC etc.)")
-        pushed += 1
+        pushed += int(any(ok for ok, _ in results))
 
     if not dry_run:
         store.save()
