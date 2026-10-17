@@ -23,11 +23,11 @@ class Translation(unittest.TestCase):
             send_alert(cfg, item, 3, 'daily-series')
             data=json.loads(send.call_args.args[1])
             self.assertIn('Day11', data['title'])
-            self.assertIn('原文译文：', data['content'])
+            self.assertNotIn('原文译文：', data['content'])
             self.assertNotIn('机翻参考', data['content'])
             self.assertNotIn('说明：', data['content'])
             self.assertIn('磁盘占用减少了60%', data['content'])
-            self.assertEqual(len(data['content'].splitlines()), 4)
+            self.assertEqual(len(data['content'].splitlines()), 2)
             self.assertNotRegex(data['title']+data['content'], r'http|t\.co')
 
     def test_source_and_output_link_cleaning(self):

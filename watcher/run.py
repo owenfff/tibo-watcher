@@ -12,6 +12,7 @@ from .detect import score_text, should_alert
 from .state import StateStore
 from .public_monitors import old_mirror_post
 from .followups import classify_time_reply
+from .translate import compact_qq_body
 
 MAX_ALERTS_PER_CYCLE = 5
 
@@ -81,6 +82,7 @@ def check_once(cfg: Config, *, prime: bool = False, dry_run: bool = False, sampl
         if dry_run:
             if post.source == "x":
                 title, body = format_qq(post)
+                body = compact_qq_body(body)
                 print(f"DRY-RUN QQ 预览（不发送）\n{title}\n{body}")
             else:
                 log(f"DRY-RUN changelog match: score {score.total}")

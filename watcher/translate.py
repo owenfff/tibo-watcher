@@ -127,3 +127,16 @@ def add_translation(body: str, text: str) -> str:
     result = '\n'.join(lines)
     assert len(result) < 1900 and not re.search(r'http|www\.', result, re.I)
     return result
+
+
+def compact_qq_body(body: str) -> str:
+    """Keep the translation readable on its own, with a short attribution."""
+    lines = body.splitlines()
+    if len(lines) != 4:
+        return body
+    text = re.sub(r'^(?:原文译文|说明)：', '', lines[2])
+    target = re.search(r'北京时间：(最晚|预计)(\d{2}-\d{2} \d{2}:\d{2})(前?)', lines[1])
+    if target:
+        when = '北京时间' + target.group(2) + target.group(3)
+        text = text.replace('上述北京时间截止前', when).replace('上方换算的北京时间窗口', when)
+    return clean_text(text) + '\n来源：@thsottiaux'
