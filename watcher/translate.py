@@ -61,6 +61,12 @@ def _neutralize_clock(text: str) -> str:
 
 def translate_public_post(text: str, *, time_context: bool = False) -> str | None:
     text = clean_text(DAY_MARKER.sub('', text))
+    # A complete, common release reply has a reliable literal translation.
+    # Only use the Beijing reference when the caller has already converted it.
+    if time_context and re.fullmatch(
+            r'(?:landing|rolling out|shipping) sometime today by (?:EOD|end of (?:the )?day) (?:PST|PDT|PT)[.!]?',
+            text, re.I):
+        return '预计在上述北京时间截止前上线，具体时刻未定。'
     text = re.sub(r'\blanding\b', 'rolling out', text, flags=re.I)
     text = re.sub(r'\blanded\b', 'rolled out', text, flags=re.I)
     original_han = len(re.findall(r'[\u3400-\u9fff]', text))

@@ -130,7 +130,9 @@ class Timing(unittest.TestCase):
             out=add_translation(body,reply().body)
             self.assertIn('10-18 16:00前',out)
             self.assertIn('原文译文：',out)
-            self.assertNotIn('EOD',get.call_args.args[0])
+            self.assertIn('预计在上述北京时间截止前上线，具体时刻未定。',out)
+            self.assertNotIn('已完成',out)
+            get.assert_not_called()
             self.assertEqual(len(out.splitlines()),4)
 
     def test_explicit_product_plan_does_not_inherit_reset_topic(self):
