@@ -59,15 +59,30 @@ def _neutralize_clock(text: str) -> str:
     return text
 
 
-def translate_public_post(text: str) -> str | None:
-    text = DAY_MARKER.sub('', text)
+def translate_public_post(text: str, *, time_context: bool = False) -> str | None:
+    text = clean_text(DAY_MARKER.sub('', text))
+    text = re.sub(r'\blanding\b', 'rolling out', text, flags=re.I)
+    text = re.sub(r'\blanded\b', 'rolled out', text, flags=re.I)
+    original_han = len(re.findall(r'[\u3400-\u9fff]', text))
+    original_latin = len(re.findall(r'[a-zA-Z]', text))
+    already_chinese = original_han > original_latin
+    if time_context:
+        # Keep converted times authoritative in the fixed second line. Translate
+        # only the author's own reply, never merge the parent's claims into it.
+        text = re.sub(r'(?i)\b(?:by\s+)?(?:EOD|end of (?:the )?day)\s*(?:PST|PDT|PT|UTC|GMT)?\b',
+                      '上述北京时间截止前', text)
+        text = re.sub(r'(?i)\b(?:in|within)\s+(?:(?:the\s+)?next\s+)?(?:about\s+)?(?:\d+(?:\.\d+)?|one|two|three|four|five|six|a|an)\s+(?:hours?|minutes?|days?)\b',
+                      '上方换算的北京时间窗口', text)
+    else:
+        text = re.sub(r'(?i)\b(?:EOD|end of (?:the )?day)\s*(?:PST|PDT|PT)?\b',
+                      '原帖所述日终（具体北京时间未确认）', text)
     text = _neutralize_clock(clean_text(text))[:MAX_SOURCE_CHARS]
     if not text:
         return None
     # Already-Chinese posts do not need an external request.
     han = len(re.findall(r'[\u3400-\u9fff]', text))
     latin = len(re.findall(r'[a-zA-Z]', text))
-    if han > latin:
+    if already_chinese:
         return text[:MAX_TRANSLATION_CHARS]
     try:
         translated = []
@@ -95,7 +110,8 @@ def translate_public_post(text: str) -> str | None:
 
 
 def add_translation(body: str, text: str) -> str:
-    translated = translate_public_post(text)
+    timed = bool(re.search(r'北京时间：(最晚|预计)\d{2}-\d{2} \d{2}:\d{2}',body))
+    translated = translate_public_post(text, time_context=timed)
     if not translated:
         return body
     lines = body.splitlines()

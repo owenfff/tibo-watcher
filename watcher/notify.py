@@ -12,6 +12,7 @@ from .fetch import http_post
 from .model import Post
 from .translate import add_translation
 from .daily import classify_daily
+from .followups import classify_time_reply
 from .plans import classify_plan
 from .events import BEIJING, classify_reset, format_qq
 
@@ -158,8 +159,8 @@ def send_alert(cfg: Config, post: Post, score_total: int, score_hits: str) -> li
         logs.append(_isolated(_send_email, cfg, title, long_form))
     if (cfg.pushplus_token and cfg.pushplus_qq_option and post.source == "x"
             and cfg.handle.lower() == "thsottiaux" and not post.is_repost
-            and (not post.is_quote or classify_daily(post.body))
-            and (classify_reset(post.body) or classify_daily(post.body) or classify_plan(post.body))):
+            and (not post.is_quote or classify_daily(post.body) or classify_time_reply(post))
+            and (classify_reset(post.body) or classify_daily(post.body) or classify_plan(post.body) or classify_time_reply(post))):
         qq_title, qq_body = format_qq(post)
         if cfg.qq_auto_translate:
             qq_body = add_translation(qq_body, post.body)

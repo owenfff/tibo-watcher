@@ -85,7 +85,11 @@ def main(argv: list[str] | None = None) -> int:
                 raise ValueError("body must be a nonempty string")
             post = Post(key="sample:offline", source="x", title=text, body=text,
                         url="", created_at=data.get("created_at", ""),
-                        is_repost=bool(data.get("is_repost", False)))
+                        is_repost=bool(data.get("is_repost", False)),
+                        is_reply=bool(data.get("is_reply", False)),
+                        parent_id=str(data.get("parent_id", "")),
+                        context_id=str(data.get("context_id", "")),
+                        context_body=str(data.get("context_body", "")))
         except (OSError, ValueError, KeyError, TypeError) as error:
             parser.error(f"invalid sample: {error}")
         check_once(cfg, dry_run=True, sample_posts=[post])

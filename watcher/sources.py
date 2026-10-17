@@ -6,7 +6,7 @@ import re
 from .config import Config
 from .fetch import get_json, http_get
 from .model import Post
-from .public_monitors import fetch_public_monitors
+from .public_monitors import fetch_public_monitors, parent_id
 
 
 def fetch_x_posts(cfg: Config) -> list[Post]:
@@ -34,7 +34,8 @@ def fetch_x_posts(cfg: Config) -> list[Post]:
                                and metadata["author_user_name"].lower() != cfg.handle.lower())),
             is_quote=bool(metadata.get("is_quote") or metadata.get("isQuote")
                           or metadata.get("quoted_status") or metadata.get("quoted_tweet")),
-            is_reply=bool(metadata.get("is_reply") or metadata.get("isReply")),
+            is_reply=bool(metadata.get("is_reply") or metadata.get("isReply") or parent_id(metadata)),
+            parent_id=parent_id(metadata),
         ))
     return posts
 
@@ -90,7 +91,7 @@ def collect(cfg: Config) -> list[Post]:
         posts.extend(fetch_x_posts(cfg))
     except Exception as error:
         print(f"[warn] X/Dayclaw source failed: {error}")
-    posts.extend(fetch_public_monitors(cfg))
+    posts.extend(fetch_public_monitors(cfg, known_posts=posts))
     if cfg.watch_changelog:
         try:
             posts.extend(fetch_changelog_entries(cfg))

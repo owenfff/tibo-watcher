@@ -58,7 +58,8 @@ class PublicPlans(unittest.TestCase):
         self.assertIn("北京时间10-13 16:06", body)
         self.assertNotIn("http", title + body)
         _, body = format_qq(post("We will launch Codex tomorrow at 8pm PT."))
-        self.assertIn("未确认精确执行时刻", body)
+        self.assertIn("10-14 11:00", body)
+        self.assertIn("预计", body)
         self.assertNotIn("8pm", body)
 
     def test_reset_precedence(self):

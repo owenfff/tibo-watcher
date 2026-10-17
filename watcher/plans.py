@@ -81,24 +81,9 @@ def classify_plan(text: str) -> PlanEvent | None:
 
 
 def _relative_target(post) -> str | None:
-    # Only unambiguous durations are converted. Do not invent a timezone for
-    # 'tomorrow', 'end of day', or a bare wall-clock time.
-    clean = re.sub(r"https?://\S+|www\.\S+", "", post.body, flags=re.I)
-    match = re.search(r"\bin\s+(?:about\s+|~\s*)?(\d+)\s+(minutes?|hours?|days?)\b", clean, re.I)
-    if not match:
-        return None
-    try:
-        dt = datetime.fromisoformat(post.created_at.replace('Z', '+00:00'))
-        if dt.tzinfo is None:
-            dt = dt.replace(tzinfo=timezone.utc)
-        if not re.search(r"[T ]\d{2}:\d{2}", post.created_at):
-            return None
-        value = int(match[1])
-        delta = timedelta(**{('minutes' if match[2].lower().startswith('minute') else
-                              'hours' if match[2].lower().startswith('hour') else 'days'): value})
-        return (dt + delta).astimezone(timezone(timedelta(hours=8))).strftime('%m-%d %H:%M')
-    except (ValueError, AttributeError, OverflowError):
-        return None
+    from .timing import parse_update_time, BJ
+    timing = parse_update_time(post.body, post.created_at)
+    return timing.target.astimezone(BJ).strftime('%m-%d %H:%M') if timing and timing.target else None
 
 
 def format_plan_qq(post, when: str) -> tuple[str, str]:
@@ -110,7 +95,7 @@ def format_plan_qq(post, when: str) -> tuple[str, str]:
     if len(title) > 40 and title_product == "Codex/ChatGPT Work":
         title = f"Codex/Work{event.conclusion} 北京时间{when}"
     target = _relative_target(post)
-    timing = f"；原帖相对时间折算预计北京时间{target}" if target else "；未确认精确执行时刻"
+    timing = f"；原帖时间折算预计北京时间{target}" if target else "；未确认精确执行时刻"
     body = (f"状态：{event.status}\n北京时间：{when}（原帖发布时间）\n"
             f"说明：{event.product}{event.detail}{timing}。\n来源：@thsottiaux")
     assert len(title) <= 40 and not re.search(r"http|www\.", title + body, re.I)

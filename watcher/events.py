@@ -80,7 +80,7 @@ def beijing_time(raw: str) -> str:
     return dt.astimezone(BEIJING).strftime('%m-%d %H:%M')
 
 
-def format_qq(post) -> tuple[str, str]:
+def _format_qq_base(post) -> tuple[str, str]:
     event = classify_reset(post.body)
     if classify_daily(post.body):
         return format_daily_qq(post, beijing_time(post.created_at), event)
@@ -103,3 +103,12 @@ def format_qq(post) -> tuple[str, str]:
     # All displayed text comes from fixed labels and parsed timestamps.
     assert len(title) <= 40 and not re.search(r"http|www\.", title + body, re.I)
     return title, body
+
+
+def format_qq(post) -> tuple[str, str]:
+    from .followups import classify_time_reply, format_time_reply, enrich_timing
+    reply = classify_time_reply(post)
+    if reply:
+        return format_time_reply(post, reply)
+    title, body = _format_qq_base(post)
+    return enrich_timing(post, title, body)

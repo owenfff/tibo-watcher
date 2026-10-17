@@ -11,6 +11,7 @@ from .plans import classify_plan
 from .detect import score_text, should_alert
 from .state import StateStore
 from .public_monitors import old_mirror_post
+from .followups import classify_time_reply
 
 MAX_ALERTS_PER_CYCLE = 5
 
@@ -46,7 +47,11 @@ def check_once(cfg: Config, *, prime: bool = False, dry_run: bool = False, sampl
     for post in posts:
         if store.is_seen(post.key):
             continue
-        score = score_text(post.body)
+        if post.context_pending:
+            log(f"reply context pending: {post.key}; retry next cycle")
+            continue
+        reply = classify_time_reply(post)
+        score = score_text(post.context_body + "\n" + post.body if reply else post.body)
         if cfg.verbose:
             log(f"new {post.source} item, score {score.total} ({score.hits}): "
                 f"{post.title[:70]}")
@@ -55,9 +60,9 @@ def check_once(cfg: Config, *, prime: bool = False, dry_run: bool = False, sampl
             continue
         if not cfg.include_replies and post.is_reply:
             continue
-        event = classify_reset(post.body) or ((classify_daily(post.body) or classify_plan(post.body)) if post.source == "x" else None)
+        event = reply or classify_reset(post.body) or ((classify_daily(post.body) or classify_plan(post.body)) if post.source == "x" else None)
         if (post.is_repost or event is None
-                or (post.is_quote and not (post.source == "x" and classify_daily(post.body)))):
+                or (post.is_quote and not (reply or (post.source == "x" and classify_daily(post.body))))):
             continue
         if cfg.alert_all or should_alert(score, cfg.score_threshold):
             findings.append((post, score))

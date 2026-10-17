@@ -15,3 +15,7 @@ class Post:
     is_repost: bool = False
     is_quote: bool = False
     feed: str = ""
+    parent_id: str = ""
+    context_id: str = ""
+    context_body: str = ""
+    context_pending: bool = False
